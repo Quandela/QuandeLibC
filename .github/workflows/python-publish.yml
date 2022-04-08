@@ -45,13 +45,13 @@ jobs:
       with:
         name: python-package-distributions
         path: dist
-        
+
   deploy:
     name: Publish to PyPi
     needs:
     - build-wheel
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Download wheels
       uses: actions/download-artifact@v2
