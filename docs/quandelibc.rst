@@ -19,4 +19,3 @@ quandelibc
 .. autoclass:: FSMap
     :members:
     :undoc-members:
-
