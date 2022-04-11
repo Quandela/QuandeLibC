@@ -28,16 +28,22 @@ SOFTWARE.
 #include "permanent.h"
 
 using namespace std;
-using ms = chrono::milliseconds;
+using ms = chrono::microseconds;
 typedef std::numeric_limits< double > dbl;
 
 void my_main(int argc, const char** argv) {
     // automatic detect number of threads
-    int nthreads=0;
-    if (argc>1 && sscanf(argv[1], "%d", &nthreads) != 1)
-        throw(invalid_argument("parameter should be #threads"));
-    if (nthreads==0)
-        nthreads = thread::hardware_concurrency();
+    int n_threads, n_iter;
+    if (argc != 4)
+        throw(invalid_argument("should have 4 arguments: n_threads n_iter algorithm"));
+    if (sscanf(argv[1], "%d", &n_threads) != 1)
+        throw(invalid_argument("cannot parse #threads"));
+    if (sscanf(argv[2], "%d", &n_iter) != 1)
+        throw(invalid_argument("cannot parse #iter"));
+    if (strcmp(argv[3], "ryser") && strcmp(argv[3], "glynn"))
+        throw(invalid_argument("unknown algorithm"));
+    if (n_threads == 0)
+        n_threads = thread::hardware_concurrency();
 #if defined(P_COMPLEX)
     vector<complex<double>> input;
     complex<double> value;
@@ -76,14 +82,22 @@ void my_main(int argc, const char** argv) {
         throw(logic_error("Read " + to_string(input.size()) +
                           " elements which does not make a square matrix"));
     cerr << "dimension: " << n << "x" << n << endl;
-    cerr << "running on " << nthreads << " threads" << endl;
-    auto start = chrono::steady_clock::now();
+    cerr << "running on " << n_threads << " threads" << " - " << n_iter << " iterations" << endl;
+    long elapsed = 100000000;
+    auto result = input[0];
 
-    cout << permanent(input.data(), n, nthreads) << endl;
-
-    auto end = chrono::steady_clock::now();
-    auto elapsed = chrono::duration_cast<ms>(end-start).count();
-    cerr << "elapsed: "<< elapsed << endl;
+    for(int i=0; i<n_iter+1; i++) {
+        auto start = chrono::steady_clock::now();
+        if (!strcmp(argv[3], "ryser"))
+            result = permanent_ryser(input.data(), n, n_threads);
+        else if (!strcmp(argv[3], "glynn"))
+            result = permanent_glynn(input.data(), n);
+        auto end = chrono::steady_clock::now();
+        if (i)
+            if (chrono::duration_cast<ms>(end - start).count() < elapsed)
+                elapsed = chrono::duration_cast<ms>(end - start).count();
+    }
+    cout << "result:" << result << " elapsed by iter: "<< elapsed << " micro-seconds"<<endl;
 }
 
 int main(int argc, const char** argv) {
