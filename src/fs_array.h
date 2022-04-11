@@ -25,6 +25,7 @@ SOFTWARE.
 #define FS_ARRAY_H
 
 #include <cstring>
+#include <complex>
 
 #include "fockstate.h"
 #include "fs_mask.h"
@@ -48,6 +49,7 @@ class fs_array {
         [[nodiscard]] inline int get_n() const { return this->_n; }
         void generate() const;
         void save(const char *fd_name) const;
+        [[nodiscard]] static bool exists_save(const char *fd_name, int m, int n);
         fockstate operator[](unsigned long long) const;
         class const_iterator
         {
@@ -56,10 +58,10 @@ class fs_array {
                 const_iterator(const fs_array *fsa, bool first);
                 const_iterator(const fs_array *fsa, unsigned long long f_idx);
                 const_iterator(const_iterator &i);
-                const_iterator(const_iterator &&i);
+                const_iterator(const_iterator &&i) noexcept;
                 ~const_iterator();
-                const_iterator &operator=(const_iterator &i);
-                const_iterator &operator=(const_iterator &&i);
+                const_iterator &operator=(const_iterator const&i);
+                const_iterator &operator=(const_iterator &&i) noexcept;
                 self_type &operator++();
                 [[nodiscard]] fockstate operator*();
                 bool operator==(const self_type& rhs) const;
@@ -85,13 +87,14 @@ class fs_array {
         unsigned long long find_idx(const fockstate &fs_vec) const;
         const_iterator begin() const { return {this, true}; }
         const_iterator end() const { return {this, false}; }
+        void norm_coefs(std::complex<double> *p_coefs) const;
     private:
         void _count_fs();
         mutable char *_buffer;
         int _m;
         int _n;
         unsigned long long _count;
-        const fs_mask *_pmask;
+        const fs_mask *_p_mask;
 };
 
 #endif
