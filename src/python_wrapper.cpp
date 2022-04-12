@@ -36,7 +36,9 @@
 
 namespace py = pybind11;
 
-long long permanent_in(const py::array_t<long long, py::array::c_style | py::array::forcecast> &M, int n_threads=0)
+long long permanent_in(const py::array_t<long long, py::array::c_style | py::array::forcecast> &M,
+                       int n_threads,
+                       std::string &ptype)
 {
   // check input dimensions
   if ( M.ndim()     != 2 )
@@ -44,10 +46,12 @@ long long permanent_in(const py::array_t<long long, py::array::c_style | py::arr
   if ( M.shape()[0] != M.shape()[1] )
     throw std::runtime_error("Input should have size [N,N]");
 
-  return permanent<long long>(M.data(), M.shape()[0], n_threads);
+  return permanent<long long>(M.data(), M.shape()[0], n_threads, ptype);
 }
 
-double permanent_fl(const py::array_t<double, py::array::c_style | py::array::forcecast> &M, int n_threads=2)
+double permanent_fl(const py::array_t<double, py::array::c_style | py::array::forcecast> &M,
+                    int n_threads,
+                    std::string &ptype)
 {
     // check input dimensions
   if ( M.ndim()     != 2 )
@@ -55,11 +59,11 @@ double permanent_fl(const py::array_t<double, py::array::c_style | py::array::fo
   if ( M.shape()[0] != M.shape()[1] )
     throw std::runtime_error("Input should have size [N,N]");
 
-  return permanent<double>(M.data(), M.shape()[0], n_threads);
+  return permanent<double>(M.data(), M.shape()[0], n_threads, ptype);
 }
 
 std::complex<double> permanent_cx(const py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &M,
-                                  int n_threads=2)
+                                  int n_threads, std::string &ptype)
 {
   // check input dimensions
   if ( M.ndim()     != 2 )
@@ -67,7 +71,7 @@ std::complex<double> permanent_cx(const py::array_t<std::complex<double>, py::ar
   if ( M.shape()[0] != M.shape()[1] )
     throw std::runtime_error("Input should have size [N,N]");
 
-  return permanent<std::complex<double>>(M.data(), M.shape()[0], n_threads);
+  return permanent<std::complex<double>>(M.data(), M.shape()[0], n_threads, ptype);
 }
 
 py::array_t<double> sub_permanents_fl(const py::array_t<double, py::array::c_style | py::array::forcecast> &M)
@@ -110,18 +114,35 @@ fockstate set_slice(const fockstate &fs1, const py::slice &slice, const fockstat
     return fs1.set_slice(fs2, start, end);
 }
 
+void compute_slos_layer(const fs_map &fsm,
+                        const py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &u,
+                        int m,
+                        int mk,
+                        py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &coefs,
+                        const py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &parent_coefs) {
+    fsm.compute_slos_layer(u.data(), m, mk,
+                           coefs.mutable_data(), coefs.shape()[0],
+                           parent_coefs.data(), parent_coefs.shape()[0]);
+}
+
+void norm_coefs(const fs_array &fsa,
+                py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &coefs) {
+    fsa.norm_coefs(coefs.mutable_data());
+}
+
+
 PYBIND11_MODULE(quandelibc, m) {
     m.doc() = "Optimized c-functions";
 
     m.def("permanent_in", &permanent_in,
           "Permanent of int number (n,n) array",
-          py::arg("M"), py::arg("n_threads")=0);
+          py::arg("M"), py::arg("n_threads")=1, py::arg("ptype")="");
     m.def("permanent_fl", &permanent_fl,
           "Permanent of float number (n,n) array",
-          py::arg("M"), py::arg("n_threads")=2);
+          py::arg("M"), py::arg("n_threads")=1, py::arg("ptype")="");
     m.def("permanent_cx", &permanent_cx,
           "Permanent of complex number (n,n) array",
-          py::arg("M"), py::arg("n_threads")=2);
+          py::arg("M"), py::arg("n_threads")=1, py::arg("ptype")="");
     m.def("sub_permanents_fl", &sub_permanents_fl,
           "Permanent of n+1 (n,n) float number sub-array",
           py::arg("M"));
@@ -183,7 +204,9 @@ PYBIND11_MODULE(quandelibc, m) {
         .def("generate", &fs_array::generate)
         .def("size", &fs_array::size)
         .def_property("m", &fs_array::get_m, nullptr)
-        .def_property("n", &fs_array::get_n, nullptr);
+        .def_property("n", &fs_array::get_n, nullptr)
+        .def("norm_coefs", &norm_coefs);
+
 
     py::class_<fs_map>(m, "FSMap")
         .def(py::init<const fs_array &, const fs_array &, bool>(),
@@ -196,8 +219,8 @@ PYBIND11_MODULE(quandelibc, m) {
         .def("count", &fs_map::count)
         .def("size", &fs_map::size)
         .def_property("m", &fs_map::get_m, nullptr)
-        .def_property("n", &fs_map::get_n, nullptr);
-
+        .def_property("n", &fs_map::get_n, nullptr)
+        .def("compute_slos_layer", &compute_slos_layer);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

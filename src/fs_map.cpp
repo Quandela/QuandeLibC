@@ -72,7 +72,7 @@ fs_map::fs_map(const fs_array &fsa_current, const fs_array &fsa_parent, bool do_
     _n = nk-1;
     assert(fsa_parent.get_n()==_n);
     _step = 0;
-    // the number of bytes necessary to encode an index in fsa_current
+    // the number of bytes necessary to encode an fsa_current index in fsa_parent
     // keep 0xff..ff for npos
     for(auto c=fsa_current._count+1; c > 0; _step++, c >>= 8);
     _count = fsa_parent._count;
@@ -88,7 +88,7 @@ fs_map::fs_map(const char *fd_name, int m, int n): _m(m), _n(n), _pfsa_current(n
     char buffer[4];
     rf.read(buffer, 4);
     if (std::string(buffer, 3) != "FSM" || buffer[3] != version)
-        throw std::invalid_argument("incorrect FSA file version");
+        throw std::invalid_argument("incorrect FSM file version");
     unsigned char cm = _m;
     unsigned char cn = _n;
     rf.read((char *)&cm, 1);
@@ -106,7 +106,7 @@ fs_map::fs_map(const char *fd_name, int m, int n): _m(m), _n(n), _pfsa_current(n
     unsigned long long Mnp1 = _count*(_n+_m)/(_n+1);
     // TODO: fix incorrect _count for masked patterns
     _step = 0;
-    for(auto c=Mnp1; c > 0; _step++, c >>= 8);
+    for(auto c=Mnp1+1; c > 0; _step++, c >>= 8);
     _buffer = new unsigned char[size()];
     rf.read((char*)_buffer, size());
 }
@@ -182,21 +182,25 @@ fs_map::~fs_map() {
     delete [] _buffer;
 }
 
-unsigned long long fs_map::get(unsigned long long idx, int m) {
+unsigned long long fs_map::get(unsigned long long idx, int m) const {
     if (m>=_m)
         throw std::out_of_range("mode id too large");
     if (idx>=_count)
         throw std::out_of_range("idx too large");
     generate();
-    unsigned char *ptr_pointer = _buffer + (idx*_m+m)*_step;
-    int size_pointer = _step;
-    unsigned long long idx_p1 = 0;
-    bool all_xff = true;
-    while (size_pointer--) {
-        all_xff &= ptr_pointer[size_pointer] == 0xff;
-        idx_p1 = (idx_p1 << 8) + (ptr_pointer[size_pointer]);
-    }
-    if (all_xff)
-        return fs_npos;
-    return idx_p1;
+    return fs_map::get_nc(idx, m);
+}
+
+void fs_map::compute_slos_layer(const std::complex<double> *p_u,
+                                int m,
+                                int mk,
+                                std::complex<double> *p_coefs, unsigned long n_coefs,
+                                const std::complex<double> *p_parent_coefs, unsigned long n_parent_coefs) const {
+    memset((void*)p_coefs, 0, n_coefs*sizeof(std::complex<double>));
+    for(unsigned long i=0; i < n_parent_coefs; i++)
+        for(int j=0; j<m; j++) {
+            unsigned long long idx = get_nc(i, j);
+            if (idx != fs_npos)
+                p_coefs[idx] += p_parent_coefs[i] * p_u[j*m+mk];
+        }
 }

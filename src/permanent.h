@@ -29,12 +29,15 @@
 #include <thread>
 
 template<typename T>
-T permanent(const T *A, int n, int nthreads = 0) {
+T permanent(const T* A, int n, int nthreads = 0, const std::string &ptype = "") {
     if (A == nullptr) throw std::invalid_argument("A is null");
 
     /* cannot use glynn for int (need to adapt the 2 divider) */
-    if (!std::is_same<T, long long>::value && (nthreads == 1 || nthreads == 2))
+    if (ptype == "glynn" || (ptype.size() == 0 && (nthreads == 1 || nthreads == 2))) {
+        if (std::is_same<T, long long>::value)
+            throw (std::invalid_argument("cannot use glynn for int"));
         return permanent_glynn(A, n);
+    }
 
     if (nthreads == 0)
         nthreads = std::thread::hardware_concurrency();

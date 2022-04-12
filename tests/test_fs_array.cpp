@@ -173,4 +173,34 @@ SCENARIO("Testing FS Array") {
             REQUIRE(fsa_child[fsm.get(idx, 8)].to_str() == "|1,0,0,0,1,0,0,1,1>");
         }
     }
+    SECTION("test coefficient normalization") {
+        WHEN("with 3 photons") {
+            fs_array fsa(3, 3);
+            REQUIRE(fsa.count() == 10);
+            std::vector<std::complex<double>> coefs(10);
+            for(auto i=0; i<10; i++) coefs[i] = 1;
+            fsa.norm_coefs(coefs.data());
+            int i=0;
+            REQUIRE(fsa[i].to_str() == "|3,0,0>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)6)));
+            REQUIRE(fsa[i].to_str() == "|2,1,0>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)2)));
+            REQUIRE(fsa[i].to_str() == "|2,0,1>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)2)));
+            REQUIRE(fsa[i].to_str() == "|1,2,0>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)2)));
+            REQUIRE(fsa[i].to_str() == "|1,1,1>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)1)));
+            REQUIRE(fsa[i].to_str() == "|1,0,2>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)2)));
+            REQUIRE(fsa[i].to_str() == "|0,3,0>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)6)));
+            REQUIRE(fsa[i].to_str() == "|0,2,1>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)2)));
+            REQUIRE(fsa[i].to_str() == "|0,1,2>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)2)));
+            REQUIRE(fsa[i].to_str() == "|0,0,3>");
+            REQUIRE(coefs[i++].real() == Approx(1*sqrt((double)6)));
+        }
+    }
 }

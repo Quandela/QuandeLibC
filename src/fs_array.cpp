@@ -24,6 +24,8 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <unordered_map>
+
 #include "fs_array.h"
 
 namespace fs = std::filesystem;
@@ -43,11 +45,11 @@ static fs::path get_fsa_filepath(const char *fd_name, int m, int n) {
 }
 
 void fs_array::_count_fs() {
-    if (_pmask) {
+    if (_p_mask) {
         fockstate fs(_m, _n);
         _count = 0;
         while(true) {
-            if (_pmask->match(fs)) _count++;
+            if (_p_mask->match(fs)) _count++;
             if (!(++fs)._code) break;
         }
     } else {
@@ -58,21 +60,21 @@ void fs_array::_count_fs() {
     }
 }
 
-fs_array::fs_array(int m, int n): _buffer(nullptr), _m(m), _n(n), _count(0), _pmask(nullptr) {
+fs_array::fs_array(int m, int n): _buffer(nullptr), _m(m), _n(n), _count(0), _p_mask(nullptr) {
     _count_fs();
 }
 
-fs_array::fs_array(int m, int n, const fs_mask &mask):_buffer(nullptr),
-                                                      _m(m),
-                                                      _n(n),
-                                                      _count(0),
-                                                      _pmask(new fs_mask(mask)) {
+fs_array::fs_array(int m, int n, const fs_mask &mask): _buffer(nullptr),
+                                                       _m(m),
+                                                       _n(n),
+                                                       _count(0),
+                                                       _p_mask(new fs_mask(mask)) {
     _count_fs();
 }
 
 const unsigned char fs_array::version = 2;
 
-fs_array::fs_array(const char *fd_name, int m, int n): _m(m), _n(n), _count(0), _pmask(nullptr) {
+fs_array::fs_array(const char *fd_name, int m, int n): _m(m), _n(n), _count(0), _p_mask(nullptr) {
     fs::path fpath = get_fsa_filepath(fd_name, _m, _n);
     std::ifstream rf(fpath.c_str(), std::ios::binary);
     if (!rf)
@@ -125,6 +127,14 @@ void fs_array::save(const char *fd_name) const {
     wf.write(_buffer, size());
 }
 
+bool fs_array::exists_save(const char *fd_name, int m, int n) {
+    fs::path fpath = get_fsa_filepath(fd_name, m, n);
+    std::ifstream rf(fpath.c_str(), std::ios::binary);
+    if (!rf)
+        return false;
+    return true;
+}
+
 unsigned long long fs_array::count() const {
     return _count;
 }
@@ -141,7 +151,7 @@ void fs_array::generate() const {
     unsigned long long idx=0;
     while(true) {
         int i;
-        if (!_pmask || _pmask->match(fs)) {
+        if (!_p_mask || _p_mask->match(fs)) {
             for(i=0;i<_n;i++) _buffer[i+idx] = fs._code[i];
             idx += _n;
         }
@@ -168,11 +178,11 @@ unsigned long long fs_array::find_idx(const fockstate &fs) const {
     }
     if (fs.get_n() != _n)
         return fs_npos;
-    // dichotomic search -> O(log_2 _count)
+    // binary search -> O(log_2 _count)
     char *code = fs._code;
     unsigned long long begin_range = 0;
     unsigned long long end_range = _count;
-    unsigned long long middle = 0;
+    unsigned long long middle;
     unsigned long long last_tested_idx = fs_npos;
     while ((end_range-begin_range)>1) {
         middle = (begin_range+end_range)>>1;
@@ -228,12 +238,14 @@ fs_array::const_iterator::const_iterator(const_iterator &it):_fsa(it._fsa), idx(
         _pfs = nullptr;
 }
 
-fs_array::const_iterator::const_iterator(const_iterator &&it):_fsa(it._fsa), idx(it.idx) {
+fs_array::const_iterator::const_iterator(const_iterator &&it) noexcept :_fsa(it._fsa), idx(it.idx) {
     _pfs = it._pfs;
     it._pfs = nullptr;
 }
 
-fs_array::const_iterator &fs_array::const_iterator::operator=(fs_array::const_iterator &it) {
+fs_array::const_iterator &fs_array::const_iterator::operator=(fs_array::const_iterator const&it) {
+    if (&it == this)
+        return *this;
     _fsa = it._fsa;
     delete _pfs;
     if (it._pfs)
@@ -244,7 +256,7 @@ fs_array::const_iterator &fs_array::const_iterator::operator=(fs_array::const_it
     return *this;
 }
 
-fs_array::const_iterator &fs_array::const_iterator::operator=(fs_array::const_iterator &&it) {
+fs_array::const_iterator &fs_array::const_iterator::operator=(fs_array::const_iterator &&it) noexcept {
     _fsa = it._fsa;
     delete _pfs;
     _pfs = it._pfs;
@@ -259,7 +271,7 @@ fs_array::const_iterator::~const_iterator() {
 
 void fs_array::const_iterator::_find_next() {
     if (_pfs) {
-        while(_pfs->_code && _fsa->_pmask && !_fsa->_pmask->match(*_pfs)) {
+        while(_pfs->_code && _fsa->_p_mask && !_fsa->_p_mask->match(*_pfs)) {
             ++(*_pfs);
         }
     }
@@ -285,4 +297,27 @@ bool fs_array::const_iterator::operator==(const fs_array::const_iterator::self_t
 
 bool fs_array::const_iterator::operator!=(const fs_array::const_iterator::self_type& rhs) const {
     return this->idx != rhs.idx || this->_fsa != rhs._fsa;
+}
+
+void fs_array::norm_coefs(std::complex<double> *p_coefs) const {
+    generate();
+    const char *_code = _buffer;
+    std::unordered_map<unsigned long, double> sqrt_o;
+    for(unsigned long i=0; i < count(); i++, _code+=_n) {
+        unsigned long p = 1;
+        for(int j=0; j<_n;) {
+            int k=1;
+            while (j+k<_n && _code[j+k] == _code[j])
+                p *= ++k;
+            j += k;
+        }
+        auto it = sqrt_o.find(p);
+        double coef;
+        if (it == sqrt_o.end()) {
+            coef = sqrt((double) p);
+            sqrt_o[p] = coef;
+        } else
+            coef = it->second;
+        p_coefs[i] *= coef;
+    }
 }

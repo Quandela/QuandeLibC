@@ -23,6 +23,7 @@
 #ifndef FS_MAP_H
 #define FS_MAP_H
 
+#include <complex>
 #include <iostream>
 
 #include "fs_array.h"
@@ -38,8 +39,8 @@ class fs_map {
         static unsigned char version;
         /**
          * Build a fs-map given current and parent fs-array
-         * @param fsa_current the fs-array for the current layer
-         * @param fsa_parent the fs-array of the parent layer
+         * @param fsa_current the fs-array for the current layer (k photons)
+         * @param fsa_parent the fs-array of the parent layer (k-1 photons)
          * @param generate if true, immediately generates the structure in memory
          * @throws std::out_of_range if it is not possible to find parent state associated to current state
          */
@@ -70,9 +71,29 @@ class fs_map {
         inline unsigned long long size() const { return _count * _m * _step; };
         inline int get_m() const { return _m; };
         inline int get_n() const { return _n; };
-        unsigned long long get(unsigned long long idx, int m);
+        inline unsigned long long get_nc(unsigned long long idx, int m) const {
+            unsigned char *ptr_pointer = _buffer + (idx * _m + m) * _step;
+            int size_pointer = _step;
+            unsigned long long idx_p1 = 0;
+            bool all_xff = true;
+            while (size_pointer--) {
+                all_xff &= ptr_pointer[size_pointer] == 0xff;
+                idx_p1 = (idx_p1 << 8) + (ptr_pointer[size_pointer]);
+            }
+            if (all_xff)
+                return fs_npos;
+            return idx_p1;
+        }
+        unsigned long long get(unsigned long long idx, int m) const;
         void save(const char *fd_name) const;
         void generate() const;
+
+        void compute_slos_layer(const std::complex<double> *p_u,
+                                int m,
+                                int mk,
+                                std::complex<double> *p_coefs, unsigned long n_coefs,
+                                const std::complex<double> *p_parent_coefs, unsigned long n_parent_coefs) const;
+
     private:
         int _step;
         unsigned long long _count;
