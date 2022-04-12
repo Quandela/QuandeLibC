@@ -38,8 +38,8 @@ SOFTWARE.
 namespace py = pybind11;
 
 long long permanent_in(const py::array_t<long long, py::array::c_style | py::array::forcecast> &M,
-                       std::string &ptype,
-                       int n_threads=0)
+                       int n_threads,
+                       std::string &ptype)
 {
   // check input dimensions
   if ( M.ndim()     != 2 )
@@ -51,8 +51,8 @@ long long permanent_in(const py::array_t<long long, py::array::c_style | py::arr
 }
 
 double permanent_fl(const py::array_t<double, py::array::c_style | py::array::forcecast> &M,
-                    std::string &ptype,
-                    int n_threads=2)
+                    int n_threads,
+                    std::string &ptype)
 {
     // check input dimensions
   if ( M.ndim()     != 2 )
@@ -64,8 +64,7 @@ double permanent_fl(const py::array_t<double, py::array::c_style | py::array::fo
 }
 
 std::complex<double> permanent_cx(const py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &M,
-                                  std::string &ptype,
-                                  int n_threads=2)
+                                  int n_threads, std::string &ptype)
 {
   // check input dimensions
   if ( M.ndim()     != 2 )
@@ -138,13 +137,13 @@ PYBIND11_MODULE(quandelibc, m) {
 
     m.def("permanent_in", &permanent_in,
           "Permanent of int number (n,n) array",
-          py::arg("M"), py::arg("ptype")="", py::arg("n_threads")=0);
+          py::arg("M"), py::arg("n_threads")=1, py::arg("ptype")="");
     m.def("permanent_fl", &permanent_fl,
           "Permanent of float number (n,n) array",
-          py::arg("M"), py::arg("ptype")="", py::arg("n_threads")=2);
+          py::arg("M"), py::arg("n_threads")=1, py::arg("ptype")="");
     m.def("permanent_cx", &permanent_cx,
           "Permanent of complex number (n,n) array",
-          py::arg("M"), py::arg("ptype")="", py::arg("n_threads")=2);
+          py::arg("M"), py::arg("n_threads")=1, py::arg("ptype")="");
     m.def("sub_permanents_fl", &sub_permanents_fl,
           "Permanent of n+1 (n,n) float number sub-array",
           py::arg("M"));
