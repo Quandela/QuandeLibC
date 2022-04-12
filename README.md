@@ -35,7 +35,7 @@ git clone git@github.com:Quandela/QuandeLibC.git --recurse-submodules
 cd quandelibc
 ```
 
-Then compile, install and test the module: 
+Then compile, install and test the module:
 
 ```bash
 pip install .
@@ -73,7 +73,7 @@ Note that for 1 or 2 threads, Glynn algorithm will be used (https://en.wikipedia
 
 TBD
 
-### Fock states classes 
+### Fock states classes
 
 #### `FockState`
 
@@ -93,7 +93,7 @@ TBD
 * `m` and `n` properties: `fs.m`, `fs.n`
 * `prodnfact` equals to `prod(mi=1;mi<=m) !s_mi`
 
-#### `FSArray` 
+#### `FSArray`
 
 `FSArray` is a class representing all the possible fock states for given in `(m,n)` fock space.
 
@@ -122,10 +122,10 @@ Note that due the nature of the fock state spaces - the size can quickly goes fa
 size=1083236.358076Gb
 ```
 
-Internally, the fock states are represented by a sequence `M1M2M3M4...Mn` where each `Mi` represents the mode of i-th photon, and the `Mi`s are sorted in increasing order. This representation is unique and more dense than the reverse fock representation `s1...sn`. 
+Internally, the fock states are represented by a sequence `M1M2M3M4...Mn` where each `Mi` represents the mode of i-th photon, and the `Mi`s are sorted in increasing order. This representation is unique and more dense than the reverse fock representation `s1...sn`.
 Practically, the number of modes is restricted to 255 allowing to represent each mode as a char. For readibility, mode 0 is represented by letter `A`, mode 1 letter `B`, ...
 
-> **_NOTE_**: The *(m,n)* fock-state array size is *n.C(m+n-1,n)* - by restricting to 4 bits only (32 modes maximum), the fock states could be compacted 50% - however as we will see below `FSMap` representations are actually far larger so this optimisation is not necessary. 
+> **_NOTE_**: The *(m,n)* fock-state array size is *n.C(m+n-1,n)* - by restricting to 4 bits only (32 modes maximum), the fock states could be compacted 50% - however as we will see below `FSMap` representations are actually far larger so this optimisation is not necessary.
 
 When a `FSArray` is built, the generated state list is in lexicographic order on that internal representation. For instance:
 
