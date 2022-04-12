@@ -29,7 +29,6 @@ repos:
     -   id: insert-license
         types: ["file", "c++", "text"]
         args:
-        - --detect-license-in-X-top-lines=20
         - --license-filepath
         - LICENSE
         - --comment-style
