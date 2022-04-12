@@ -29,18 +29,18 @@
 #include <thread>
 
 template<typename T>
-T permanent(const T* A, int n, const std::string &ptype, int nthreads=0) {
+T permanent(const T* A, int n, int nthreads = 0, const std::string &ptype = "") {
+  if (A == nullptr) throw std::invalid_argument("A is null");
+
   /* cannot use glynn for int (need to adapt the 2 divider) */
-  if (ptype == "glynn" || (ptype.size()==0 && (nthreads==1 || nthreads==2))) {
+  if (ptype == "glynn" || (ptype.size() == 0 && (nthreads == 1 || nthreads == 2))) {
       if (std::is_same<T, long long>::value)
-          throw (std::invalid_argument("should have 4 arguments: n_threads n_iter algorithm fs"));
+          throw (std::invalid_argument("cannot use glynn for int"));
       return permanent_glynn(A, n);
   }
 
-  int max_threads = std::thread::hardware_concurrency();
-
-  if (nthreads==0)
-    nthreads = max_threads;
+  if (nthreads == 0)
+    nthreads = std::thread::hardware_concurrency();
 
   return permanent_ryser(A, n, nthreads);
 }

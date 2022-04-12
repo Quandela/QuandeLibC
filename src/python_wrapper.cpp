@@ -46,7 +46,7 @@ long long permanent_in(const py::array_t<long long, py::array::c_style | py::arr
   if ( M.shape()[0] != M.shape()[1] )
     throw std::runtime_error("Input should have size [N,N]");
 
-  return permanent<long long>(M.data(), M.shape()[0], ptype, n_threads);
+  return permanent<long long>(M.data(), M.shape()[0], n_threads, ptype);
 }
 
 double permanent_fl(const py::array_t<double, py::array::c_style | py::array::forcecast> &M,
@@ -59,7 +59,7 @@ double permanent_fl(const py::array_t<double, py::array::c_style | py::array::fo
   if ( M.shape()[0] != M.shape()[1] )
     throw std::runtime_error("Input should have size [N,N]");
 
-  return permanent<double>(M.data(), M.shape()[0], ptype, n_threads);
+  return permanent<double>(M.data(), M.shape()[0], n_threads, ptype);
 }
 
 std::complex<double> permanent_cx(const py::array_t<std::complex<double>, py::array::c_style | py::array::forcecast> &M,
@@ -71,7 +71,7 @@ std::complex<double> permanent_cx(const py::array_t<std::complex<double>, py::ar
   if ( M.shape()[0] != M.shape()[1] )
     throw std::runtime_error("Input should have size [N,N]");
 
-  return permanent<std::complex<double>>(M.data(), M.shape()[0], ptype, n_threads);
+  return permanent<std::complex<double>>(M.data(), M.shape()[0], n_threads, ptype);
 }
 
 py::array_t<double> sub_permanents_fl(const py::array_t<double, py::array::c_style | py::array::forcecast> &M)
