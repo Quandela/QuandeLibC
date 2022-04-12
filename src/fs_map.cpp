@@ -196,7 +196,7 @@ void fs_map::compute_slos_layer(const std::complex<double> *p_u,
                                 int mk,
                                 std::complex<double> *p_coefs, unsigned long n_coefs,
                                 const std::complex<double> *p_parent_coefs, unsigned long n_parent_coefs) const {
-    memset(p_coefs, 0, n_coefs*sizeof(std::complex<double>));
+    memset((void*)p_coefs, 0, n_coefs*sizeof(std::complex<double>));
     for(unsigned long i=0; i < n_parent_coefs; i++)
         for(int j=0; j<m; j++) {
             unsigned long long idx = get_nc(i, j);
