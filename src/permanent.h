@@ -30,19 +30,19 @@
 
 template<typename T>
 T permanent(const T* A, int n, int nthreads = 0, const std::string &ptype = "") {
-  if (A == nullptr) throw std::invalid_argument("A is null");
+    if (A == nullptr) throw std::invalid_argument("A is null");
 
-  /* cannot use glynn for int (need to adapt the 2 divider) */
-  if (ptype == "glynn" || (ptype.size() == 0 && (nthreads == 1 || nthreads == 2))) {
-      if (std::is_same<T, long long>::value)
-          throw (std::invalid_argument("cannot use glynn for int"));
-      return permanent_glynn(A, n);
-  }
+    /* cannot use glynn for int (need to adapt the 2 divider) */
+    if (ptype == "glynn" || (ptype.size() == 0 && (nthreads == 1 || nthreads == 2))) {
+        if (std::is_same<T, long long>::value)
+            throw (std::invalid_argument("cannot use glynn for int"));
+        return permanent_glynn(A, n);
+    }
 
-  if (nthreads == 0)
-    nthreads = std::thread::hardware_concurrency();
+    if (nthreads == 0)
+        nthreads = std::thread::hardware_concurrency();
 
-  return permanent_ryser(A, n, nthreads);
+    return permanent_ryser(A, n, nthreads);
 }
 
 #endif
