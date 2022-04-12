@@ -6,7 +6,7 @@ import sys
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-import codecs 
+import codecs
 
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
@@ -127,7 +127,7 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License"
     ],
-    setup_requires=["scmver", "wheel"], 
+    setup_requires=["scmver", "wheel"],
     scmver=get_version('PKG-INFO')=='0.0.0',
     version=get_version('PKG-INFO'),
     ext_modules=[CMakeExtension("quandelibc")],

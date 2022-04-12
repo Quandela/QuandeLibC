@@ -1,0 +1,36 @@
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: mixed-line-ending
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: fix-encoding-pragma
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.1.13
+    hooks:
+    -   id: forbid-crlf
+        types: ["file", "python", "text"]
+    -   id: remove-crlf
+        types: ["file", "python", "text"]
+    -   id: forbid-tabs
+        types: ["file", "python", "text"]
+    -   id: remove-tabs
+        types: ["file", "python", "text"]
+    -   id: insert-license
+        types: ["file", "text"]
+        types_or: ["python", "cmake", "makefile"]
+        args:
+        - --license-filepath
+        - LICENSE
+    -   id: insert-license
+        types: ["file", "c++", "text"]
+        args:
+        - --detect-license-in-X-top-lines=20
+        - --license-filepath
+        - LICENSE
+        - --comment-style
+        - //

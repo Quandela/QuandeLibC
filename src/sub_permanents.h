@@ -1,26 +1,25 @@
-/*
-MIT License
+// MIT License
+//
+// Copyright (c) 2022 Quandela
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
-Copyright (c) 2022 Quandela
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON INFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
 #ifndef _SUB_PERMANENTS_HPP
 #define _SUB_PERMANENTS_HPP
 
@@ -30,7 +29,7 @@ SOFTWARE.
 
 template<typename T>
 void sub_permanents(const T* A, int n, T* p) {
-  /* we expect A to be a (n+1) rows, (n) columns matrix, we will return n+1 permanents of 
+  /* we expect A to be a (n+1) rows, (n) columns matrix, we will return n+1 permanents of
      the matrices excluding row j
      output in p which is supposed to be size m */
   int m = n + 1;
@@ -71,7 +70,7 @@ void sub_permanents(const T* A, int n, T* p) {
   bool s = true;
 
   int j = 0;
-	while (j < n-1) {	
+	while (j < n-1) {
     if (chi[j]) {
       for(int i=0, base=j; i<m; i++, base+=n) rowsum[i] -= A[base];
       chi[j] = 0;
@@ -109,7 +108,7 @@ void sub_permanents(const T* A, int n, T* p) {
     } else {
       j = f[1];
       f[1] = 1;
-    }    
+    }
 	}
   posix_memfree(f);
   free(chi);
