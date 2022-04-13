@@ -29,20 +29,6 @@
 #include "fs_map.h"
 #include "fockstate.h"
 
-namespace fs = std::filesystem;
-
-#define BUFFER_LENGTH 30
-
-static fs::path get_dirfile(const char *fd_name, const char *template_name, int m, int n, int k) {
-    fs::path fpath(fd_name);
-    if (fs::is_directory(fpath)) {
-        char f_name[BUFFER_LENGTH];
-        snprintf(f_name, BUFFER_LENGTH, template_name, m, n, k);
-        fpath /= f_name;
-    }
-    return fpath;
-}
-
 struct NStrHash {
     int _size;
     explicit NStrHash(int size):_size(size) {}
@@ -78,52 +64,6 @@ fs_map::fs_map(const fs_array &fsa_current, const fs_array &fsa_parent, bool do_
     _count = fsa_parent._count;
     if (do_generate)
         generate();
-}
-
-fs_map::fs_map(const char *fd_name, int m, int n): _m(m), _n(n), _pfsa_current(nullptr), _pfsa_parent(nullptr) {
-    fs::path fpath = get_dirfile(fd_name, "layer-m%d-n%d:%d.fsm", _m, _n, _n + 1);
-    std::ifstream rf(fpath.c_str(), std::ios::binary);
-    if (!rf)
-        throw std::runtime_error("cannot open file");
-    char buffer[4];
-    rf.read(buffer, 4);
-    if (std::string(buffer, 3) != "FSM" || buffer[3] != version)
-        throw std::invalid_argument("incorrect FSM file version");
-    unsigned char cm = _m;
-    unsigned char cn = _n;
-    rf.read((char *)&cm, 1);
-    rf.read((char *)&cn, 1);
-    if (m >= 0 && m != cm)
-        throw std::invalid_argument("not right mode");
-    _m = cm;
-    if (n >= 0 && n != cn)
-        throw std::invalid_argument("not right number of photons");
-    _n = cn;
-    _count = 1;
-    for(int nk=1; nk<=n; nk++) {
-        _count = (_count*(nk+m-1))/nk;
-    }
-    unsigned long long Mnp1 = _count*(_n+_m)/(_n+1);
-    // TODO: fix incorrect _count for masked patterns
-    _step = 0;
-    for(auto c=Mnp1+1; c > 0; _step++, c >>= 8);
-    _buffer = new unsigned char[size()];
-    rf.read((char*)_buffer, size());
-}
-
-void fs_map::save(const char *fd_name) const {
-    generate();
-    fs::path fpath = get_dirfile(fd_name, "layer-m%d-n%d:%d.fsm", _m, _n, _n + 1);
-    std::ofstream wf(fpath.c_str(), std::ios::out | std::ios::binary);
-    if (!wf)
-        throw std::runtime_error("cannot open file");
-    wf.write("FSM", 3);
-    wf.write((char*)&version, 1);
-    unsigned char cm = _m;
-    unsigned char cn = _n;
-    wf.write((char*)&cm, 1);
-    wf.write((char*)&cn, 1);
-    wf.write((const char *)_buffer, size());
 }
 
 void fs_map::generate() const {

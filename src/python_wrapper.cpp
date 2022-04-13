@@ -193,8 +193,6 @@ PYBIND11_MODULE(quandelibc, m) {
     py::class_<fs_array>(m, "FSArray")
         .def(py::init<int, int>(), py::arg("m"), py::arg("n"))
         .def(py::init<int, int, fs_mask>(), py::arg("m"), py::arg("n"), py::arg("mask"))
-        .def(py::init<const char *, int, int>(), py::arg("fdname"), py::arg("m")=-1, py::arg("n")=-1)
-        .def("save", &fs_array::save, py::arg("fdname"))
         .def("__getitem__", &fs_array::operator[], py::arg("idx"))
         .def("__iter__",
             [](const fs_array &fsa) { return py::make_iterator(fsa.begin(), fsa.end()); },
@@ -213,8 +211,6 @@ PYBIND11_MODULE(quandelibc, m) {
                 py::arg("fsa_current"),
                 py::arg("fsa_parent"),
                 py::arg("generate")=false)
-        .def(py::init<const char *, int, int>(), py::arg("fdname"), py::arg("m")=-1, py::arg("n")=-1)
-        .def("save", &fs_map::save, py::arg("fdname"))
         .def("get", &fs_map::get, py::arg("idx"), py::arg("mk"))
         .def("count", &fs_map::count)
         .def("size", &fs_map::size)
