@@ -4,14 +4,12 @@ project(quandelibc)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-EXEC_PROGRAM("/usr/sbin/sysctl -n hw.optional.arm64" OUTPUT_VARIABLE IS_ARM64)
-
 if (MSVC)
     add_compile_options(/arch:AVX2 /MT /Zc:__cplusplus)
 else (MSVC)
     add_compile_options(-Wall -Wextra -pedantic -Werror)
     # used for SIMD optimization
-    if (NOT ${IS_ARM64})
+    if (NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
         # disable AVX optimization on Apple ARM64
         add_compile_options(-mavx)
     endif ()
