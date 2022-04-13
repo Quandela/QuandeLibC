@@ -12,6 +12,7 @@ else (MSVC)
     if (NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
         # disable AVX optimization on Apple ARM64
         add_compile_options(-mavx)
+        message("enabled AVX Optimizations")
     endif ()
 endif (MSVC)
 
