@@ -11,7 +11,7 @@ if (MSVC)
 else (MSVC)
     add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-zero-length-array)
     # used for SIMD optimization
-    if (NOT "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+    if (NOT "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64" AND NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
         # disable AVX optimization on Apple ARM64
         add_compile_options(-mavx)
         message("AVX Optimizations enabled")
