@@ -9,7 +9,7 @@ option(BUILD_TESTING "Build unit tests" OFF)
 if (MSVC)
     add_compile_options(/arch:AVX2 /MT /Zc:__cplusplus)
 else (MSVC)
-    add_compile_options(-Wall -Wextra -pedantic -Werror)
+    add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-zero-length-array)
     # used for SIMD optimization
     if (NOT "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
         # disable AVX optimization on Apple ARM64
