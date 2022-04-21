@@ -1,19 +1,20 @@
 cmake_minimum_required(VERSION 3.4...3.18)
 project(quandelibc)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-EXEC_PROGRAM("/usr/sbin/sysctl -n hw.optional.arm64" OUTPUT_VARIABLE IS_ARM64)
+option(BUILD_TESTING "Build unit tests" OFF)
 
 if (MSVC)
     add_compile_options(/arch:AVX2 /MT /Zc:__cplusplus)
 else (MSVC)
-    add_compile_options(-Wall -Wextra -pedantic -Werror)
+    add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-zero-length-array)
     # used for SIMD optimization
-    if (NOT ${IS_ARM64})
+    if (NOT "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
         # disable AVX optimization on Apple ARM64
         add_compile_options(-mavx)
+        message("AVX Optimizations enabled")
     endif ()
 endif (MSVC)
 
@@ -49,7 +50,7 @@ target_link_libraries(test_permanent-complex ${CMAKE_THREAD_LIBS_INIT})
 target_compile_definitions(test_permanent-complex PUBLIC P_COMPLEX)
 
 ## ----------------------- Tests ----------------------- ##
-include(CTest)
 if (BUILD_TESTING)
+    include(CTest)
     add_subdirectory(tests)
 endif ()

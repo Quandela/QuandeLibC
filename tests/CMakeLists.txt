@@ -41,7 +41,8 @@ foreach(SRC ${QLIBC_SOURCES})
 endforeach()
 add_executable(quandelibcTests main_tests.cpp ${QLIBC_NESTED_SOURCES}
         test_fockstate.cpp
-        test_fs_array.cpp)
+        test_fs_array.cpp
+        test_permanents.cpp)
 
 target_link_libraries(quandelibcTests PRIVATE Catch2::Catch2)
 

@@ -28,6 +28,7 @@
 
 #include "fockstate.h"
 #include "fs_mask.h"
+#include "memory_tools.h"
 
 class fs_map;
 
@@ -40,15 +41,12 @@ class fs_array {
         static const unsigned char version;
         fs_array(int m, int n);
         fs_array(int m, int n, const fs_mask &mask);
-        explicit fs_array(const char *fd_name, int m=-1, int n=-1);
         ~fs_array();
-        [[nodiscard]] unsigned long long count() const;
-        [[nodiscard]] unsigned long long size() const;
-        [[nodiscard]] inline int get_m() const { return this->_m; }
-        [[nodiscard]] inline int get_n() const { return this->_n; }
+        unsigned long long count() const;
+        unsigned long long size() const;
+        inline int get_m() const { return this->_m; }
+        inline int get_n() const { return this->_n; }
         void generate() const;
-        void save(const char *fd_name) const;
-        [[nodiscard]] static bool exists_save(const char *fd_name, int m, int n);
         fockstate operator[](unsigned long long) const;
         class const_iterator
         {
@@ -62,7 +60,7 @@ class fs_array {
                 const_iterator &operator=(const_iterator const&i);
                 const_iterator &operator=(const_iterator &&i) noexcept;
                 self_type &operator++();
-                [[nodiscard]] fockstate operator*();
+                fockstate operator*();
                 bool operator==(const self_type& rhs) const;
                 bool operator!=(const self_type& rhs) const;
             private:

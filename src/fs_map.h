@@ -46,15 +46,6 @@ class fs_map {
          */
         fs_map(const fs_array &fsa_current, const fs_array &fsa_parent, bool generate=false);
         /**
-         * Build a fs-map from a file
-         * @param fd_name name and path of the file or of the directory where standard templated name file is saved
-         * @param m number of modes, -1 for default - is required if fd_name is a directory
-         * @param n number of photons, -1 for default - is required if fd_name is a directory
-         * @throws std::runtime_error if file not found
-         * @throws std::invalid_argument if n/m are not correct, or if file format is not right
-         */
-        fs_map(const char *fd_name, int m=-1, int n=-1);
-        /**
          * Delete a fs-map
          */
         ~fs_map();
@@ -85,7 +76,6 @@ class fs_map {
             return idx_p1;
         }
         unsigned long long get(unsigned long long idx, int m) const;
-        void save(const char *fd_name) const;
         void generate() const;
 
         void compute_slos_layer(const std::complex<double> *p_u,

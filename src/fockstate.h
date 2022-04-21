@@ -43,8 +43,8 @@ class fockstate {
         fockstate(int m, int n);
         fockstate(int m, int n, const char *code, bool owned_data=false);
         ~fockstate();
-        [[nodiscard]] fockstate copy() const;
-        [[nodiscard]] unsigned long long hash() const;
+        fockstate copy() const;
+        unsigned long long hash() const;
         int operator[](int idx) const;
         fockstate &operator=(const fockstate &);
         fockstate &operator+=(const fockstate &);
@@ -73,13 +73,13 @@ class fockstate {
          * product of factorial $n_k$ used as normalization
          * @return the product of factorial
          */
-        [[nodiscard]] unsigned long long prodnfact() const;
-        [[nodiscard]] std::string to_str() const;
-        [[nodiscard]] inline int get_m() const { return _m; }
-        [[nodiscard]] inline int get_n() const { return _n; }
-        [[nodiscard]] inline const char *get_code() const { return _code; }
+        unsigned long long prodnfact() const;
+        std::string to_str() const;
+        inline int get_m() const { return _m; }
+        inline int get_n() const { return _n; }
+        inline const char *get_code() const { return _code; }
         void to_vect(std::vector<int> &) const;
-        [[nodiscard]] std::vector<int> to_vect() const;
+        std::vector<int> to_vect() const;
         inline static unsigned long long hash_function(const char *s, int size) {
             unsigned long long hash = 5381;
             for(int i=0; i<size; i++)
@@ -99,8 +99,8 @@ class fockstate {
                 const fockstate *_pfs;
                 int _mk;
         };
-        [[nodiscard]] const_iterator begin() const { return {this, 0}; }
-        [[nodiscard]] const_iterator end() const { return {this, _m}; }
+        const_iterator begin() const { return {this, 0}; }
+        const_iterator end() const { return {this, _m}; }
     private:
         int _m;
         int _n;
