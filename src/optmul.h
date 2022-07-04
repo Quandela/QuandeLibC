@@ -84,63 +84,6 @@ double multiply_row<double>(double* A, int n)
     return rowsumprod;
 }
 
-#else // __AVX__
-
-#include "../extern/mipp/src/mipp.h"
-
-template<>
-double multiply_row(double* A, int n)
-{
-    double result = 1;
-    int lastIdx = 0, regSize = mipp::N<double>();
-    if (n >= regSize) {
-        mipp::Reg<double> regTmp;
-        regTmp.load(A);
-        for (lastIdx = regSize; lastIdx <= (n - regSize); lastIdx += regSize) {
-            mipp::Reg<double> currentReg;
-            currentReg.load(A + lastIdx);
-            regTmp *= currentReg;
-        }
-        result = regTmp.hmul();
-    }
-
-    for(; lastIdx < n; lastIdx++)
-        result *= A[lastIdx];
-    return result;
-}
-
-template<>
-std::complex<double> multiply_row(std::complex<double>* A, int n)
-{
-    std::complex<double> result = 1;
-    int lastIdx = 0, regSize = mipp::N<double>(), regSizeComplex = mipp::N<double>() * 2;
-    if (n >= (regSize*2)) {
-        mipp::Regx2<double> regTmp;
-        regTmp.val[0].load(reinterpret_cast<double*>(A));
-        regTmp.val[1].load(reinterpret_cast<double*>(A + regSize));
-        regTmp.deinterleave();
-        for (lastIdx = regSizeComplex; lastIdx <= (n - regSizeComplex); lastIdx += regSizeComplex) {
-            mipp::Regx2<double> currentReg;
-            currentReg.val[0].load(reinterpret_cast<double*>(A + lastIdx));
-            currentReg.val[1].load(reinterpret_cast<double*>(A + lastIdx + regSize));
-            currentReg.deinterleave();
-            regTmp = regTmp.cmul(currentReg);
-        }
-
-        result = std::complex<double>(regTmp[0][0], regTmp[1][0]);
-        for (int i = 1; i < regSize; i++) {
-            auto ci = std::complex<double>(regTmp[0][i], regTmp[1][i]);
-            result *= ci;
-        }
-    }
-
-    for(; lastIdx < n; lastIdx++) {
-        result *= A[lastIdx];
-    }
-
-    return result;
-}
-
 #endif // __AVX__
 
 #endif
