@@ -219,7 +219,7 @@ fs_array::const_iterator::self_type &fs_array::const_iterator::operator++() {
 
 fockstate fs_array::const_iterator::operator*() {
     if (_pfs)
-        return *_pfs;
+        return _pfs->copy();
     return {_fsa->_m, _fsa->_n, _fsa->_buffer+idx*_fsa->_n, false};
 }
 
