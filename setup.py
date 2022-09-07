@@ -116,7 +116,7 @@ setup(
     author="Perceval.OSS@Quandela.com",
     author_email="Perceval.OSS@Quandela.com",
     description="Optimized C-functions for Perceval",
-    long_description="",
+    long_description="Collection of c-optimized computation primitive available as python module. When possible, the low level function uses INTEL SIMD primitives.",
     project_urls={
         "Documentation" : "https://perceval.quandela.net/docs-quandelibc/",
         "Source": "https://github.com/Quandela/QuandeLibC",

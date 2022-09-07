@@ -83,6 +83,7 @@ double multiply_row<double>(double* A, int n)
     for(;lastidx<n; lastidx++) { rowsumprod *= A[lastidx];}
     return rowsumprod;
 }
-#endif
+
+#endif // __AVX__
 
 #endif

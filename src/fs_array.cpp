@@ -28,21 +28,10 @@
 
 #include "fs_array.h"
 
-namespace fs = std::filesystem;
 #define DEFAULT_FILENAME "layer-m%d-n%d.fsa"
 #define BUFFER_LENGTH 30
 
 const unsigned long long fs_npos = 0xffffffff;
-
-static fs::path get_fsa_filepath(const char *fd_name, int m, int n) {
-    fs::path fpath(fd_name);
-    if (fs::is_directory(fpath)) {
-        char f_name[BUFFER_LENGTH];
-        snprintf(f_name, BUFFER_LENGTH, DEFAULT_FILENAME, m, n);
-        fpath /= f_name;
-    }
-    return fpath;
-}
 
 void fs_array::_count_fs() {
     if (_p_mask) {
@@ -74,65 +63,8 @@ fs_array::fs_array(int m, int n, const fs_mask &mask): _buffer(nullptr),
 
 const unsigned char fs_array::version = 2;
 
-fs_array::fs_array(const char *fd_name, int m, int n): _m(m), _n(n), _count(0), _p_mask(nullptr) {
-    fs::path fpath = get_fsa_filepath(fd_name, _m, _n);
-    std::ifstream rf(fpath.c_str(), std::ios::binary);
-    if (!rf)
-        throw std::runtime_error("cannot open file");
-    char buffer[4];
-    rf.read(buffer, 4);
-    if (std::string(buffer, 3) != "FSA" || buffer[3] > version)
-        throw std::invalid_argument("incorrect FSA file version");
-    if (buffer[3]>1) {
-        rf >> _count;
-        // separator \0
-        rf.read(buffer, 1);
-    }
-    else
-        _count_fs();
-    unsigned char cm = _m;
-    unsigned char cn = _n;
-    rf.read((char *)&cm, 1);
-    rf.read((char *)&cn, 1);
-    if (m >= 0 && m != cm)
-        throw std::invalid_argument("not right mode");
-    _m = cm;
-    if (n >= 0 && n != cn)
-        throw std::invalid_argument("not right number of photons");
-    _n = cn;
-    if (_n) {
-        _buffer = new char[size()];
-        rf.read(_buffer, size());
-    }
-}
-
 fs_array::~fs_array() {
     delete [] _buffer;
-}
-
-void fs_array::save(const char *fd_name) const {
-    generate();
-    fs::path fpath = get_fsa_filepath(fd_name, _m, _n);
-    std::ofstream wf(fpath.c_str(), std::ios::out | std::ios::binary);
-    if (!wf)
-        throw std::runtime_error("cannot open file");
-    wf.write("FSA", 3);
-    wf.write((char*)&version, 1);
-    wf << _count;
-    wf.write("", 1);
-    unsigned char cm = _m;
-    unsigned char cn = _n;
-    wf.write((char*)&cm, 1);
-    wf.write((char*)&cn, 1);
-    wf.write(_buffer, size());
-}
-
-bool fs_array::exists_save(const char *fd_name, int m, int n) {
-    fs::path fpath = get_fsa_filepath(fd_name, m, n);
-    std::ifstream rf(fpath.c_str(), std::ios::binary);
-    if (!rf)
-        return false;
-    return true;
 }
 
 unsigned long long fs_array::count() const {
@@ -287,7 +219,7 @@ fs_array::const_iterator::self_type &fs_array::const_iterator::operator++() {
 
 fockstate fs_array::const_iterator::operator*() {
     if (_pfs)
-        return *_pfs;
+        return _pfs->copy();
     return {_fsa->_m, _fsa->_n, _fsa->_buffer+idx*_fsa->_n, false};
 }
 
