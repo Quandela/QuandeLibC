@@ -29,11 +29,11 @@
 class annotation {
     public:
         /* read a key-value KEY:VALUE annotation */
-        annotation(const char *str);
-        annotation(const std::string &k, const std::complex<float> &v);
-        const std::string &name() const { return _name; }
-        const std::complex<float> &value() const { return _value; }
-        std::string to_str() const;
+        explicit annotation(const char *str);
+        annotation(std::string name, const std::complex<float> &value):_name(std::move(name)), _value(value) {}
+        [[nodiscard]] const std::string &name() const { return _name; }
+        [[nodiscard]] const std::complex<float> &value() const { return _value; }
+        [[nodiscard]] std::string to_str() const;
     private:
         std::string _name;
         std::complex<float> _value;

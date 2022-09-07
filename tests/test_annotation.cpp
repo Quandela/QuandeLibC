@@ -25,7 +25,7 @@
 #include "../src/annotation.h"
 
 SCENARIO("C++ Testing Annotation") {
-   SECTION("parse incorrect annotations") {
+    SECTION("parse incorrect annotations") {
         REQUIRE_THROWS_AS(annotation("12:0"), std::invalid_argument);
         REQUIRE_THROWS_AS(annotation("test"), std::invalid_argument);
         REQUIRE_THROWS_AS(annotation("test:"), std::invalid_argument);
@@ -38,22 +38,22 @@ SCENARIO("C++ Testing Annotation") {
         REQUIRE_THROWS_AS(annotation("P:1i+0"), std::invalid_argument);
         REQUIRE_THROWS_AS(annotation("P:1i+1i"), std::invalid_argument);
         REQUIRE_THROWS_AS(annotation("P:1+i"), std::invalid_argument);
-   }
-   SECTION("parse real value annotations") {
+    }
+    SECTION("parse real value annotations") {
         annotation a1("_:0");
         THEN("annotation name and values are ok") {
             REQUIRE(a1.name() == "_");
-            REQUIRE(a1.value()==std::complex<float>(0));
+            REQUIRE(a1.value() == std::complex<float>(0));
             REQUIRE(a1.to_str() == "_:0");
         }
         annotation a2("test:-1.345");
         THEN("annotation name and values are ok") {
             REQUIRE(a2.name() == "test");
-            REQUIRE(a2.value()==std::complex<float>(-1.345));
+            REQUIRE(a2.value() == std::complex<float>(-1.345));
             REQUIRE(a2.to_str() == "test:-1.345");
         }
-   }
-   SECTION("parse complex value annotations") {
+    }
+    SECTION("parse complex value annotations") {
         annotation a1("_:1i");
         THEN("annotation name and values are ok") {
             REQUIRE(a1.name() == "_");
@@ -84,16 +84,16 @@ SCENARIO("C++ Testing Annotation") {
             REQUIRE(a5.value() == std::complex<float>(0, 1));
             REQUIRE(a5.to_str() == "_:(0,1)");
         }
-   }
-   SECTION("parse float real value annotations") {
+    }
+    SECTION("parse float real value annotations") {
         annotation a1("_:(0.3,-0.5)");
         THEN("annotation name and values are ok") {
             REQUIRE(a1.name() == "_");
             REQUIRE(a1.value() == std::complex<float>(0.3, -0.5));
             REQUIRE(a1.to_str() == "_:(0.3,-0.5)");
         }
-   }
-   SECTION("parse polarization annotations") {
+    }
+    SECTION("parse polarization annotations") {
         annotation a1("P:(0.3,-0.5)");
         THEN("annotation name and values are ok") {
             REQUIRE(a1.name() == "P");
@@ -116,30 +116,34 @@ SCENARIO("C++ Testing Annotation") {
         annotation a4("P:D");
         THEN("annotation name and values are ok") {
             REQUIRE(a4.name() == "P");
-            REQUIRE(a4.value().real() == Approx(3.1415926536/2));
+            REQUIRE(a4.value().real() == Approx(3.1415926536 / 2));
             REQUIRE(a4.value().imag() == Approx(0));
             REQUIRE(a4.to_str() == "P:D");
         }
         annotation a5("P:A");
         THEN("annotation name and values are ok") {
             REQUIRE(a5.name() == "P");
-            REQUIRE(a5.value().real() == Approx(3.1415926536/2));
+            REQUIRE(a5.value().real() == Approx(3.1415926536 / 2));
             REQUIRE(a5.value().imag() == Approx(3.1415926536));
             REQUIRE(a5.to_str() == "P:A");
         }
         annotation a6("P:L");
         THEN("annotation name and values are ok") {
             REQUIRE(a6.name() == "P");
-            REQUIRE(a6.value().real() == Approx(3.1415926536/2));
-            REQUIRE(a6.value().imag() == Approx(3.1415926536/2));
+            REQUIRE(a6.value().real() == Approx(3.1415926536 / 2));
+            REQUIRE(a6.value().imag() == Approx(3.1415926536 / 2));
             REQUIRE(a6.to_str() == "P:L");
         }
         annotation a7("P:R");
         THEN("annotation name and values are ok") {
             REQUIRE(a7.name() == "P");
-            REQUIRE(a7.value().real() == Approx(3.1415926536/2));
-            REQUIRE(a7.value().imag() == Approx(3*3.1415926536/2));
+            REQUIRE(a7.value().real() == Approx(3.1415926536 / 2));
+            REQUIRE(a7.value().imag() == Approx(3 * 3.1415926536 / 2));
             REQUIRE(a7.to_str() == "P:R");
         }
+    }
+    SECTION("direct constructor") {
+        annotation a1("P", std::complex<float>(0, 0));
+        REQUIRE(a1.to_str() == "P:H");
     }
 }
