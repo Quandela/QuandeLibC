@@ -23,28 +23,24 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
+#include <unordered_map>
 #include <string>
 #include <complex>
 
-class annotation {
+class annotation : public std::unordered_map<std::string, std::complex<float>> {
     public:
         /* empty annotation */
         annotation() {}
-        /* read a key-value KEY:VALUE annotation */
+        /* read a key-value KEY1:VALUE1,KEY2:VALUE2,... annotation */
         explicit annotation(const char *str);
-        annotation(std::string name, const std::complex<float> &value):_name(std::move(name)), _value(value) {}
-        const std::string &name() const { return _name; }
-        const std::complex<float> &value() const { return _value; }
+        annotation(const std::string &name, const std::complex<float> &value) { (*this)[name] = value; }
         std::string to_str() const;
-        bool operator==(const annotation &b) const {
-            return _name == b._name && _value == b._value;
+        bool has_tag(const std::string &name) const {
+            return this->find(name) != this->end();
         }
-        bool operator!=(const annotation &b) const {
-            return !(*this==b);
+        bool has_polarization() const {
+            return has_tag("P");
         }
-    private:
-        std::string _name;
-        std::complex<float> _value;
 };
 
 #endif

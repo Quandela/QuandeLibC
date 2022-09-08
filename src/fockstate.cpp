@@ -395,7 +395,7 @@ bool fockstate::has_polarization() const {
     for(auto iter: _annotation_map) {
         auto la = iter.second;
         for(auto const &p: la) {
-            if (p.second->name() == "P") return true;
+            if (p.second->has_polarization()) return true;
         }
     }
     return false;

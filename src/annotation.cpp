@@ -28,87 +28,120 @@ static constexpr float pi = 3.14159265358979323846;
 
 annotation::annotation(const char *str) {
     if (!*str) {
-        _name = "";
         return;
     }
-    /* annotation format is [A-Za-z0-9_]+:(\({DOUBLE},{DOUBLE}\)|{DOUBLE}|{COMPLEX}\) or P:[HVADLR] */
-    unsigned int i=0;
-    for(;(str[i] >= 'A' && str[i] <= 'Z') ||
-          (str[i] >= 'a' && str[i] <= 'z') ||
-          (i > 0 && str[i] >= '0' && str[i] <= '9') ||
-          (str[i] == '_'); i++) {}
-    if (!str[i])
-        throw std::invalid_argument("invalid annotation (no key-value separator)");
-    if (str[i] != ':')
-        throw std::invalid_argument("invalid annotation (invalid key format)");
-    _name = std::string(str, 0, i);
-    std::string value(str+i+1);
-    str = value.c_str();
-    float real = 0;
-    float imaginary = 0;
-    int pos = -1;
+    /* sequence of , separated annotation tag */
+    do {
+        /* annotation format is [A-Za-z0-9_]+:(\({DOUBLE},{DOUBLE}\)|{DOUBLE}|{COMPLEX}\) or P:[HVADLR] */
+        unsigned int i = 0;
+        for (; (str[i] >= 'A' && str[i] <= 'Z') ||
+               (str[i] >= 'a' && str[i] <= 'z') ||
+               (i > 0 && str[i] >= '0' && str[i] <= '9') ||
+               (str[i] == '_'); i++) {}
+        if (!str[i])
+            throw std::invalid_argument("invalid annotation (no key-value separator)");
+        if (str[i] != ':')
+            throw std::invalid_argument("invalid annotation (invalid key format)");
+        std::string _name = std::string(str, 0, i);
+        int level = 0;
+        int j;
+        for(j=i+1; str[j] && !(level==0 && str[j]==','); j++)
+        {
+            if (str[j]=='(') level++;
+            if (str[j]==')') level--;
+        }
+        std::string value(str + i + 1, j-i-1);
+        const char *vstr = value.c_str();
+        float real = 0;
+        float imaginary = 0;
+        int pos = -1;
 
-    /* special case - annotation might be a polarization */
-    if (_name == "P" && value.size() == 1 && *str >= 'A' && *str <= 'Z') {
-        pos = 1;
-        if (value == "H") {}
-        else if (value == "V") { real = pi; }
-        else if (value == "D") { real = pi/2; }
-        else if (value == "A") { real = pi/2; imaginary = pi; }
-        else if (value == "R") { real = pi/2; imaginary = 3*pi/2; }
-        else if (value == "L") { real = pi/2; imaginary = pi/2; }
-        else {
-            throw std::invalid_argument("invalid annotation (unknown polarization value)");
-        }
-    }
-    /* ({DOUBLE},{DOUBLE}) */
-    if (sscanf(str, "(%f,%f)%n", &real, &imaginary, &pos) == 2) {
-    }
-    /* {DOUBLE} or {COMPLEX} */
-    else if (sscanf(str, "%f%n", &real, &pos) == 1) {
-        str += pos;
-        pos = 0;
-        if (*str == 'i' || *str == 'j') {
-            imaginary = real;
-            real = 0;
+        /* special case - annotation might be a polarization */
+        if (_name == "P" && value.size() == 1 && *vstr >= 'A' && *vstr <= 'Z') {
             pos = 1;
-        }
-        else if (*str) {
-            int sign=0;
-            if (*str == '+') { sign = 1; str += 1; }
-            else if (*str == '-') { sign = -1; str += 1; }
-            if (sign && sscanf(str, "%f%n", &imaginary, &pos) == 1) {
-                str += 1;
-                imaginary *= sign;
+            if (value == "H") {}
+            else if (value == "V") { real = pi; }
+            else if (value == "D") { real = pi / 2; }
+            else if (value == "A") {
+                real = pi / 2;
+                imaginary = pi;
+            }
+            else if (value == "R") {
+                real = pi / 2;
+                imaginary = 3 * pi / 2;
+            }
+            else if (value == "L") {
+                real = pi / 2;
+                imaginary = pi / 2;
+            }
+            else {
+                throw std::invalid_argument("invalid annotation (unknown polarization value)");
             }
         }
-    }
-    if (pos == -1 || str[pos])
-        throw std::invalid_argument("invalid annotation (cannot parse value)");
-    _value.real(real);
-    _value.imag(imaginary);
+        /* ({DOUBLE},{DOUBLE}) */
+        if (sscanf(vstr, "(%f,%f)%n", &real, &imaginary, &pos) == 2) {
+        }
+            /* {DOUBLE} or {COMPLEX} */
+        else if (sscanf(vstr, "%f%n", &real, &pos) == 1) {
+            vstr += pos;
+            pos = 0;
+            if (*vstr == 'i' || *vstr == 'j') {
+                imaginary = real;
+                real = 0;
+                pos = 1;
+            } else if (*vstr) {
+                int sign = 0;
+                if (*vstr == '+') {
+                    sign = 1;
+                    vstr += 1;
+                }
+                else if (*vstr == '-') {
+                    sign = -1;
+                    vstr += 1;
+                }
+                if (sign && sscanf(vstr, "%f%n", &imaginary, &pos) == 1) {
+                    vstr += pos;
+                    imaginary *= sign;
+                    if (vstr[0] == 'i' || vstr[0] == 'j') {
+                        pos = 1;
+                    } else {
+                        pos = -1;
+                    }
+                }
+            }
+        }
+        if (pos == -1 || vstr[pos])
+            throw std::invalid_argument("invalid annotation (cannot parse value)");
+        if (this->find(_name) != this->end())
+            throw std::invalid_argument("invalid annotation (duplicate tag)");
+        (*this)[_name] = std::complex<float>(real, imaginary);
+        str += j;
+        if (*str == ',') str += 1;
+    } while(*str);
 }
 
 std::string annotation::to_str() const {
     std::stringstream s;
-    if (!_name.empty()) {
-        s << _name << ":";
+    bool first = true;
+    for(auto nv_iter: (*this)) {
+        if (!first) s << ","; else first=false;
+        s << nv_iter.first << ":";
         bool special_annot = false;
-        if (_name == "P") {
+        if (nv_iter.first == "P") {
             special_annot = true;
-            if (_value == std::complex<float>(0)) { s << "H"; }
-            else if (_value == std::complex<float>(pi)) { s << "V"; }
-            else if (_value == std::complex<float>(pi / 2)) { s << "D"; }
-            else if (_value == std::complex<float>(pi / 2, pi)) { s << "A"; }
-            else if (_value == std::complex<float>(pi / 2, pi / 2)) { s << "L"; }
-            else if (_value == std::complex<float>(pi / 2, 3 * pi / 2)) { s << "R"; }
+            if (nv_iter.second == std::complex<float>(0)) { s << "H"; }
+            else if (nv_iter.second == std::complex<float>(pi)) { s << "V"; }
+            else if (nv_iter.second == std::complex<float>(pi / 2)) { s << "D"; }
+            else if (nv_iter.second == std::complex<float>(pi / 2, pi)) { s << "A"; }
+            else if (nv_iter.second == std::complex<float>(pi / 2, pi / 2)) { s << "L"; }
+            else if (nv_iter.second == std::complex<float>(pi / 2, 3 * pi / 2)) { s << "R"; }
             else special_annot = false;
         }
         if (!special_annot) {
-            if (_value.imag() == 0) {
-                s << _value.real();
+            if (nv_iter.second.imag() == 0) {
+                s << nv_iter.second.real();
             } else {
-                s << "(" << _value.real() << "," << _value.imag() << ")";
+                s << "(" << nv_iter.second.real() << "," << nv_iter.second.imag() << ")";
             }
         }
     }
