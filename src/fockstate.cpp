@@ -80,7 +80,10 @@ fockstate::fockstate(const char *str) {
             }
             if (pa) {
                 std::string annot_str = pa->to_str();
-                if (count_annot_map.find(annot_str) == count_annot_map.end())
+                if (annot_str.empty()) {
+                    delete pa;
+                }
+                else if (count_annot_map.find(annot_str) == count_annot_map.end())
                     count_annot_map[annot_str] = std::make_pair(cn, pa);
                 else {
                     count_annot_map[annot_str].first += cn;
@@ -377,7 +380,7 @@ std::list<annotation> fockstate::get_mode_annotations(unsigned int idx) const {
     int i=0;
     if (map_iter != _annotation_map.end()) {
         for(auto const &p: map_iter->second) {
-            for(; i<p.first; i++) {
+            for(int j=0; j<p.first; i++, j++) {
                 l.push_back(annotation(*p.second));
             }
         }

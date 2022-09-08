@@ -27,6 +27,10 @@
 static constexpr float pi = 3.14159265358979323846;
 
 annotation::annotation(const char *str) {
+    if (!*str) {
+        _name = "";
+        return;
+    }
     /* annotation format is [A-Za-z0-9_]+:(\({DOUBLE},{DOUBLE}\)|{DOUBLE}|{COMPLEX}\) or P:[HVADLR] */
     unsigned int i=0;
     for(;(str[i] >= 'A' && str[i] <= 'Z') ||
@@ -87,23 +91,25 @@ annotation::annotation(const char *str) {
 
 std::string annotation::to_str() const {
     std::stringstream s;
-    s << _name << ":";
-    bool special_annot = false;
-    if (_name == "P") {
-        special_annot = true;
-        if (_value == std::complex<float>(0)) { s << "H"; }
-        else if (_value == std::complex<float>(pi)) { s << "V"; }
-        else if (_value == std::complex<float>(pi/2)) { s << "D"; }
-        else if (_value == std::complex<float>(pi/2, pi)) { s << "A"; }
-        else if (_value == std::complex<float>(pi/2, pi/2)) { s << "L"; }
-        else if (_value == std::complex<float>(pi/2, 3*pi/2)) { s << "R"; }
-        else special_annot = false;
-    }
-    if (!special_annot) {
-        if (_value.imag() == 0) {
-            s << _value.real();
-        } else {
-            s << "(" << _value.real() << "," << _value.imag() << ")";
+    if (!_name.empty()) {
+        s << _name << ":";
+        bool special_annot = false;
+        if (_name == "P") {
+            special_annot = true;
+            if (_value == std::complex<float>(0)) { s << "H"; }
+            else if (_value == std::complex<float>(pi)) { s << "V"; }
+            else if (_value == std::complex<float>(pi / 2)) { s << "D"; }
+            else if (_value == std::complex<float>(pi / 2, pi)) { s << "A"; }
+            else if (_value == std::complex<float>(pi / 2, pi / 2)) { s << "L"; }
+            else if (_value == std::complex<float>(pi / 2, 3 * pi / 2)) { s << "R"; }
+            else special_annot = false;
+        }
+        if (!special_annot) {
+            if (_value.imag() == 0) {
+                s << _value.real();
+            } else {
+                s << "(" << _value.real() << "," << _value.imag() << ")";
+            }
         }
     }
     return s.str();

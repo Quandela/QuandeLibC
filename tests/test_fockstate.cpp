@@ -99,6 +99,7 @@ SCENARIO("C++ Testing FockState") {
         }
 
         WHEN("Special annotation rewriting") {
+            REQUIRE(fockstate("|{}{P:D}>").to_str() == "|{P:D}1>");
             REQUIRE(fockstate("|{P:H}{P:H}>").to_str() == "|2{P:H}>");
             REQUIRE(fockstate("|{P:(0,0)}{P:H},0>").to_str() == "|2{P:H},0>");
             REQUIRE(fockstate("|{P:(0,0)}{P:H}>").to_str(false) == "|2>");
@@ -251,5 +252,10 @@ SCENARIO("C++ Testing FockState") {
         REQUIRE(l.front().name()=="");
         l.pop_front();
         REQUIRE(l.front().name()=="");
+        l = fs.get_mode_annotations(3);
+        REQUIRE(l.size()==2);
+        REQUIRE(l.front().name()=="P");
+        l.pop_front();
+        REQUIRE(l.front().name()=="P");
     }
 }

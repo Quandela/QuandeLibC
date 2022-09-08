@@ -192,6 +192,8 @@ PYBIND11_MODULE(quandelibc, m) {
         .def("slice", &fockstate::slice)
         .def("clear_annotations", &fockstate::clear_annotations)
         .def("get_mode_annotations", &fockstate::get_mode_annotations)
+        .def_property("has_annotations", &fockstate::has_annotations, nullptr)
+        .def_property("has_polarization", &fockstate::has_polarization, nullptr)
         .def("photon2mode", &fockstate::photon2mode)
         .def("mode2photon", &fockstate::mode2photon)
         .def("prodnfact", &fockstate::prodnfact)
