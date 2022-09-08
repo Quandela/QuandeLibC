@@ -123,6 +123,12 @@ SCENARIO("C++ Testing FockState") {
         REQUIRE(fs3 == fs3);
         REQUIRE(fs3 != fs1);
         REQUIRE(fs3.get_n() == 6);
+        fs3 += fockstate("|{P:H},0,0>");
+        REQUIRE(fs3.to_str() == "|{P:H}2,4,0>");
+        fs3 += fockstate("|{P:H},{P:V},0>");
+        REQUIRE(fs3.to_str() == "|2{P:H}2,{P:V}4,0>");
+        REQUIRE((fs3+fs3).to_str() == "|4{P:H}4,2{P:V}8,0>");
+        REQUIRE((fs3+fs3).to_str(true) == "|8,10,0>");
     }
     SECTION("test photon to mode") {
         fockstate fs1(std::vector<int>{0, 1, 0});
@@ -168,10 +174,29 @@ SCENARIO("C++ Testing FockState") {
             fockstate fs3 = fs1 * fs2;
             REQUIRE(fs3 == fockstate(std::vector<int>{0, 1, 1}));
         }
+        {
+            fockstate fs1("|{P:H},0,2{_:(1,2)}>");
+            fockstate fs2("|{P:V},3>");
+            fockstate fs3(fs1*fs2);
+            REQUIRE(fs3.to_str()=="|{P:H},0,2{_:(1,2)},{P:V},3>");
+            REQUIRE(fs3.to_str(true)=="|1,0,2,1,3>");
+        }
     }
     SECTION("prodnfact") {
         REQUIRE(fockstate(std::vector<int>{1, 2, 3}).prodnfact()==12);
         REQUIRE(fockstate(std::vector<int>{0, 0}).prodnfact()==1);
+    }
+    SECTION("test polarization") {
+        REQUIRE(!fockstate("|0,1,2>").has_annotations());
+        REQUIRE(!fockstate("|0,1,2>").has_polarization());
+        REQUIRE(!fockstate("|0,1{p:3},2>").has_polarization());
+        REQUIRE(fockstate("|0,2{P:3},2>").has_polarization());
+        fockstate fs("|0,2{X:3}{Y:1},2{P:H}>");
+        REQUIRE(fs.has_annotations());
+        REQUIRE(fs.has_polarization());
+        fs.clear_annotations();
+        REQUIRE(!fs.has_annotations());
+        REQUIRE(!fs.has_polarization());
     }
     SECTION("random states and hashing") {
         std::random_device rnd_device;
@@ -199,20 +224,20 @@ SCENARIO("C++ Testing FockState") {
     }
     SECTION("Fockstate get slice") {
         fockstate fs(std::vector<int>{0,1,0,2,1,1});
-        REQUIRE(fs.slice(0,5) == fs);
-        REQUIRE(fs.slice(-3,-1) == fockstate(std::vector<int>{2, 1, 1}));
-        REQUIRE(fs.slice(1,3) == fockstate(std::vector<int>{1,0,2}));
-        REQUIRE(fs.slice(2,2) == fockstate(1, 0));
-        REQUIRE(fs.slice(1,5,2) == fockstate(std::vector<int>{1, 2, 1}));
-        REQUIRE(fs.slice(1,5,3) == fockstate(std::vector<int>{1, 1}));
-        REQUIRE_THROWS_AS(fs.slice(0,8), std::out_of_range);
-        REQUIRE_THROWS_AS(fs.slice(2,1), std::invalid_argument);
+        REQUIRE(fs.slice(0,6) == fs);
+        REQUIRE(fs.slice(-3,-1) == fockstate(std::vector<int>{2, 1}));
+        REQUIRE(fs.slice(1,4) == fockstate(std::vector<int>{1,0,2}));
+        REQUIRE(fs.slice(2,2) == fockstate(0, 0));
+        REQUIRE(fs.slice(1,6,2) == fockstate(std::vector<int>{1, 2, 1}));
+        REQUIRE(fs.slice(1,6,3) == fockstate(std::vector<int>{1, 1}));
+        REQUIRE(fs.slice(0,8) == fs);
+        REQUIRE(fs.slice(2,1) == fockstate(0, 0));
     }
     SECTION("Fockstate set slice") {
         fockstate fs(std::vector<int>{0,1,0,2,1,1});
-        REQUIRE(fs.set_slice(fockstate(std::vector<int>{2,0,3}),2,4) ==
+        REQUIRE(fs.set_slice(fockstate(std::vector<int>{2,0,3}),2,5) ==
                         fockstate(std::vector<int>{0,1,2,0,3,1}));
-        REQUIRE_THROWS_AS(fs.set_slice(fockstate(std::vector<int>{2,0}),2,4),
+        REQUIRE_THROWS_AS(fs.set_slice(fockstate(std::vector<int>{2,0}),2,3),
                           std::invalid_argument);
     }
 }

@@ -31,6 +31,8 @@
 
 #include "annotation.h"
 
+typedef std::unordered_map<size_t, std::list<std::pair<int, annotation*>>> map_m_lannot;
+
 class fockstate {
     friend class fs_array;
     friend bool operator==(const fockstate &, const fockstate &);
@@ -43,11 +45,12 @@ class fockstate {
         /* construct from text representation |...〉, |...>, or [...] */
         explicit fockstate(const char *str);
         /* construct from text representation and possible annotation list */
-        explicit fockstate(const char *str, std::unordered_map<int, annotation> &photon);
+        explicit fockstate(const char *str, const map_m_lannot &photon_annotation);
         explicit fockstate(const std::vector<int> &fs_vec);
         fockstate(const fockstate &);
         fockstate(int m, int n);
         fockstate(int m, int n, const char *code, bool owned_data=false);
+        fockstate(int m, int n, const char *code, const map_m_lannot &annots, bool owned_data=false);
         ~fockstate();
         fockstate copy() const;
         unsigned long long hash() const;
@@ -59,6 +62,11 @@ class fockstate {
         fockstate operator+(int) const;
         fockstate &operator++();
         fockstate operator*(const fockstate &) const;
+
+        bool has_annotations() const { return !_annotation_map.empty(); }
+        bool has_polarization() const;
+        void clear_annotations();
+
         void _check_slice(int &start, int &end, int step, int &slice_m, int &slice_n) const;
         /* photon_idx to mode */
         inline int photon2mode(int photon_idx) const {
@@ -86,9 +94,9 @@ class fockstate {
         inline const char *get_code() const { return _code; }
         void to_vect(std::vector<int> &) const;
         std::vector<int> to_vect() const;
-        inline static unsigned long long hash_function(const char *s, int size) {
+        inline static unsigned long long hash_function(const char *s, int size=-1) {
             unsigned long long hash = 5381;
-            for(int i=0; i<size; i++)
+            for(int i=0; (size>=0 && i<size) || (size<0 && s[i]); i++)
                 hash = ((hash << 5) + hash) + s[i];
             return hash;
         }
@@ -113,7 +121,7 @@ class fockstate {
         char *_code;
         bool _owned_data;
         /* annotations of photons in different modes */
-        std::unordered_map<size_t, std::list<std::pair<int, annotation*>>> _annotation_map;
+        map_m_lannot _annotation_map;
 };
 
 #endif

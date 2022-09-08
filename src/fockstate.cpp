@@ -165,11 +165,7 @@ fockstate &fockstate::operator=(const fockstate &b) {
     if (_owned_data && _code) {
         delete [] _code;
     }
-    for(auto const& [idx, la]: _annotation_map) {
-        for(auto const & p: la)
-            delete p.second;
-    }
-    _annotation_map.clear();
+    clear_annotations();
     for(auto const& [idx, la]: b._annotation_map) {
         _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
         for(auto const & p: la)
@@ -223,9 +219,16 @@ fockstate::fockstate(int m, int n, const char *code, bool owned_data):_m(m), _n(
                                                                       _owned_data(owned_data) {
 }
 
+fockstate::fockstate(int m, int n, const char *code, const map_m_lannot &annots, bool owned_data):
+                                                                      _m(m), _n(n), _code((char*)code),
+                                                                      _owned_data(owned_data),
+                                                                      _annotation_map(annots) {
+}
+
 fockstate::~fockstate() {
     if (_owned_data && _code)
         delete [] _code;
+    clear_annotations();
 }
 
 fockstate fockstate::copy() const {
@@ -262,7 +265,32 @@ fockstate fockstate::operator+(const fockstate &b) const {
         else
             _new_code[k++] = _code[k_this++];
     }
-    return {_m, k, _new_code, true};
+    map_m_lannot new_annotation_map;
+    for(auto & [idx,list_self_annots]: _annotation_map) {
+        new_annotation_map[idx] =  std::list<std::pair<int, annotation*>>();
+        for(auto p_toadd: list_self_annots) {
+            new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
+        }
+    }
+    for(auto & [idx,list_b_annots]: b._annotation_map) {
+        if (new_annotation_map.find(idx) == new_annotation_map.end())
+            new_annotation_map[idx] = std::list<std::pair<int, annotation*>>();
+        for(auto p_toadd: list_b_annots) {
+            std::string annot = p_toadd.second->to_str();
+            bool found = false;
+            for(auto & p_current:  new_annotation_map[idx]) {
+                if (p_current.second->to_str() == annot) {
+                    p_current.first += p_toadd.first;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
+        }
+    }
+
+    return {_m, k, _new_code, new_annotation_map, true};
 }
 
 fockstate fockstate::operator+(int c) const {
@@ -312,7 +340,39 @@ fockstate fockstate::operator*(const fockstate &b) const {
         _new_code[k] = b._code[k-_n] + _m;
         k++;
     }
-    return {_m+b._m, k, _new_code, true};
+    map_m_lannot new_annotation_map;
+    for(auto & [idx,list_self_annots]: _annotation_map) {
+        new_annotation_map[idx] =  std::list<std::pair<int, annotation*>>();
+        for(auto p_toadd: list_self_annots) {
+            new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
+        }
+    }
+    for(auto & [idx,list_b_annots]: b._annotation_map) {
+        new_annotation_map[idx+_m] = std::list<std::pair<int, annotation*>>();
+        for(auto p_toadd: list_b_annots) {
+            new_annotation_map[idx+_m].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
+        }
+    }
+
+    return {_m+b._m, k, _new_code, new_annotation_map, true};
+}
+
+bool fockstate::has_polarization() const {
+    if (_annotation_map.empty()) return false;
+    for(auto const &[idx, la]: _annotation_map) {
+        for(auto const &p: la) {
+            if (p.second->name() == "P") return true;
+        }
+    }
+    return false;
+}
+
+void fockstate::clear_annotations() {
+    for(auto const& [idx, la]: _annotation_map) {
+        for(auto const & p: la)
+            delete p.second;
+    }
+    _annotation_map.clear();
 }
 
 void fockstate::_check_slice(int &start, int &end, int step, int &slice_m, int &slice_n) const {
@@ -320,19 +380,18 @@ void fockstate::_check_slice(int &start, int &end, int step, int &slice_m, int &
         start += _m;
     if (end < 0)
         end += _m;
-    if (start < 0 || end < 0 || start >= _m || end >= _m)
-        throw std::out_of_range("slice out of range");
-    if (start > end || step < 1)
-        throw std::invalid_argument("invalid slice");
+    if (start < 0) start = 0;
+    if (end < 0) end = 0;
+    if (end > _m) end = _m;
     if (!_code)
         throw std::invalid_argument("cannot make operation on ndef-state");
     /* count photons in the slice */
     slice_m = 0;
-    for(int i=start; i<=end; i+=step)
+    for(int i=start; i<end; i+=step)
         slice_m++;
     slice_n = 0;
     for(int i=0; i<_n; i++)
-        if (_code[i] >= start+'A' && _code[i] <= end+'A' && (step == 1 || (_code[i]-start-'A') % step == 0))
+        if (_code[i] >= start+'A' && _code[i] < end+'A' && (step == 1 || (_code[i]-start-'A') % step == 0))
             slice_n++;
 }
 
@@ -343,10 +402,19 @@ fockstate fockstate::slice(int start, int end, int step) const {
         return {slice_m, 0};
     char *_new_code = new char[slice_n];
     for(int k=0, i=0; i<_n; i++)
-        if (_code[i] >= start+'A' && _code[i] <= end+'A' && (step == 1 || (_code[i]-start-'A') % step == 0)) {
+        if (_code[i] >= start+'A' && _code[i] < end+'A' && (step == 1 || (_code[i]-start-'A') % step == 0)) {
             _new_code[k++] = (_code[i]-start-'A') / step + 'A';
         }
-    return {slice_m, slice_n, _new_code, true};
+    map_m_lannot new_annotation_map;
+    for(int j=0, i=start; i<end; i+=step, j++) {
+        auto iter = _annotation_map.find(i);
+        if (iter != _annotation_map.end()) {
+            new_annotation_map[j] = std::list<std::pair<int, annotation*>>();
+            for(auto const &p: iter->second)
+                new_annotation_map[j].push_back(std::make_pair(p.first, new annotation(*p.second)));
+        }
+    }
+    return {slice_m, slice_n, _new_code, new_annotation_map, true};
 }
 
 fockstate fockstate::set_slice(const fockstate &fs, int start, int end) const {
@@ -366,10 +434,25 @@ fockstate fockstate::set_slice(const fockstate &fs, int start, int end) const {
     // insert the slice photons
     for(int j=0; j < fs._n; j++)
         _new_code[k++] = fs._code[j]+start;
-    for(;_code && i<_n && _code[i] <= end+'A'; i++);
+    for(;_code && i<_n && _code[i] < end+'A'; i++);
     // add photons on higher modes
     for(;_code && i<_n;i++)
         _new_code[k++] = _code[i];
+    map_m_lannot new_annotation_map;
+    for(auto const& [idx, la]: _annotation_map) {
+        if (int(idx) < start || int(idx) >= end) {
+            new_annotation_map[idx] = std::list<std::pair<int, annotation *>>();
+            for (auto const &[count, p_a]: la) {
+                new_annotation_map[idx].push_back(std::make_pair(count, new annotation(*p_a)));
+            }
+        }
+    }
+    for(auto const &[idx, lb]: fs._annotation_map) {
+        new_annotation_map[idx+start] = std::list<std::pair<int, annotation *>>();
+        for (auto const &[count, p_b]: lb) {
+            new_annotation_map[idx+start].push_back(std::make_pair(count, new annotation(*p_b)));
+        }
+    }
     return {get_m(), new_n, _new_code, true};
 }
 
@@ -390,6 +473,23 @@ fockstate &fockstate::operator+=(const fockstate &b) {
             _new_code[k++] = b._code[k_b++];
         else
             _new_code[k++] = _code[k_this++];
+    }
+    for(auto & [idx,list_b_annots]: b._annotation_map) {
+        if (_annotation_map.find(idx) == _annotation_map.end())
+            _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
+        for(auto p_toadd: list_b_annots) {
+            std::string annot = p_toadd.second->to_str();
+            bool found = false;
+            for(auto & p_current: _annotation_map[idx]) {
+                if (p_current.second->to_str() == annot) {
+                    p_current.first += p_toadd.first;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                _annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
+        }
     }
     _n = k;
     if (_owned_data)
@@ -421,7 +521,7 @@ unsigned long long fockstate::prodnfact() const {
 }
 
 unsigned long long fockstate::hash() const {
-    return hash_function(_code, _n);
+    return hash_function(this->to_str().c_str());
 }
 
 bool operator==(const fockstate &a, const fockstate &b) {
@@ -431,6 +531,24 @@ bool operator==(const fockstate &a, const fockstate &b) {
     if (a._n != b._n) return false;
     for(int i=0; i<a._n; i++)
         if (a._code[i] != b._code[i]) return false;
+    if (a._annotation_map.size() != b._annotation_map.size())
+        return false;
+    for(auto const & [idx, la]: a._annotation_map) {
+        auto ilb = b._annotation_map.find(idx);
+        if (ilb == b._annotation_map.end())
+            return false;
+        for (auto const &pa: la) {
+            bool found = false;
+            for (auto const &pb: ilb->second) {
+                if (pa.first == pb.first && pa.second->to_str() == pb.second->to_str()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                return false;
+        }
+    }
     return true;
 }
 
@@ -441,6 +559,24 @@ bool operator!=(const fockstate &a, const fockstate &b) {
     if (a._n != b._n) return true;
     for(int i=0;i<a._n;i++)
         if (a._code[i] != b._code[i]) return true;
+    if (a._annotation_map.size() != b._annotation_map.size())
+        return true;
+    for(auto const & [idx, la]: a._annotation_map) {
+        auto ilb = b._annotation_map.find(idx);
+        if (ilb == b._annotation_map.end())
+            return true;
+        for(auto const &pa: la) {
+            bool found = false;
+            for(auto const &pb: ilb->second) {
+                if (pa.first == pb.first && pa.second->to_str()==pb.second->to_str()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                return true;
+        }
+    }
     return false;
 }
 
