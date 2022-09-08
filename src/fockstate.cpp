@@ -24,6 +24,7 @@
 #include <cctype>
 #include <algorithm>
 #include <sstream>
+#include <map>
 #include "fockstate.h"
 
 /* one-byte memory space that is used as pointer to 0-size fockstate buffer */
@@ -51,19 +52,55 @@ fockstate::fockstate(const char *str) {
     _m = 0;
     while (true) {
         str = skip_blanks(str);
-        if (!*str || !strchr("0123456789,", *str) ||
+        if (!*str || !strchr("0123456789,{", *str) ||
             (!fs_vect.empty() && *str != ',') || (fs_vect.empty() && *str == ',')) break;
         if (*str == ',') {
             str = skip_blanks(++str);
         }
-        if (!std::isdigit(*str)) break;
-        int cn=0;
-        while (std::isdigit(*str)) {
-            cn = 10*cn+(*str-'0');
-            str++;
+        int total_cn = 0;
+        std::map<std::string, std::pair<int, annotation*>> count_annot_map;
+        while (std::isdigit(*str) || *str == '{') {
+            annotation *pa = nullptr;
+            int cn = 0;
+            if (*str == '{') {
+                cn = 1;
+            } else
+                while (std::isdigit(*str)) {
+                    cn = 10 * cn + (*str - '0');
+                    str++;
+                }
+            if (*str == '{') {
+                unsigned int j = 1;
+                for (; str[j] && str[j] != '}'; j++);
+                if (!str[j])
+                    throw std::invalid_argument("invalid fock state representation (no annotation close)");
+                std::string sa(str + 1, j - 1);
+                pa = new annotation(sa.c_str());
+                str += j + 1;
+            }
+            if (pa) {
+                std::string annot_str = pa->to_str();
+                if (count_annot_map.find(annot_str) == count_annot_map.end())
+                    count_annot_map[annot_str] = std::make_pair(cn, pa);
+                else {
+                    count_annot_map[annot_str].first += cn;
+                    delete pa;
+                }
+            }
+            for (int i = 0; i < cn; i++) {
+                total_cn++;
+            }
         }
-        _n += cn;
-        fs_vect.push_back(cn);
+        _n += total_cn;
+        if (!count_annot_map.empty()) {
+            if (_annotation_map.find(fs_vect.size()) == _annotation_map.end())
+                _annotation_map[fs_vect.size()] = std::list<std::pair<int, annotation*>>();
+            for (auto const &[annot, pair_count_annot]: count_annot_map) {
+                _annotation_map[fs_vect.size()].push_back(std::make_pair(pair_count_annot.first,
+                                                                            pair_count_annot.second));
+            }
+        }
+        fs_vect.push_back(total_cn);
     }
     if (fs_vect.empty() && *str==',') {
         _m = 1;
@@ -112,6 +149,12 @@ fockstate::fockstate(const fockstate &b):_m(b._m), _n(b._n) {
             _code = n0_buffer;
             _owned_data = false;
         }
+        for(auto const& [idx, la]: b._annotation_map) {
+            _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
+            for(auto const & [count, p_a]: la) {
+                _annotation_map[idx].push_back(std::make_pair(count, new annotation(*p_a)));
+            }
+        }
     } else {
         _code = nullptr;
     }
@@ -121,6 +164,16 @@ fockstate &fockstate::operator=(const fockstate &b) {
     if (&b == this) return *this;
     if (_owned_data && _code) {
         delete [] _code;
+    }
+    for(auto const& [idx, la]: _annotation_map) {
+        for(auto const & p: la)
+            delete p.second;
+    }
+    _annotation_map.clear();
+    for(auto const& [idx, la]: b._annotation_map) {
+        _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
+        for(auto const & p: la)
+            _annotation_map[idx].push_back(std::make_pair(p.first, new annotation(*p.second)));
     }
     _n = b._n;
     _m = b._m;
@@ -391,16 +444,35 @@ bool operator!=(const fockstate &a, const fockstate &b) {
     return false;
 }
 
-std::string fockstate::to_str() const {
+std::string fockstate::to_str(bool clear_annotations) const {
     std::stringstream ss;
     ss << "|";
     if (_code) {
         std::vector<int> fs_vect(_m);
-        for (int i = 0; i < _n; i++)
+        std::vector<std::string> annots_vect(_m);
+        for (int i = 0; i < _n; i++) {
             fs_vect[_code[i] - 'A']++;
+        }
+        if (!clear_annotations) {
+            for (int i = 0; i < _m; i++) {
+                const auto map_item = _annotation_map.find(i);
+                if (map_item != _annotation_map.end()) {
+                    for (auto const &p: map_item->second) {
+                        std::stringstream s;
+                        int count = p.first;
+                        annotation *a = p.second;
+                        if (count > 1) s << count;
+                        annots_vect[i] += s.str() + "{" + a->to_str() + "}";
+                        fs_vect[i] -= count;
+                    }
+                }
+            }
+        }
         for (int i = 0; i < _m; i++) {
             if (i) ss << ",";
-            ss << fs_vect[i];
+            ss << annots_vect[i];
+            if (annots_vect[i].empty() || fs_vect[i])
+                ss << fs_vect[i];
         }
     } else {
         for (int i = 0; i < _m; i++) {

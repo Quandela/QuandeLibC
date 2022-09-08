@@ -26,6 +26,10 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <list>
+#include <unordered_map>
+
+#include "annotation.h"
 
 class fockstate {
     friend class fs_array;
@@ -38,6 +42,8 @@ class fockstate {
         explicit fockstate(int m);
         /* construct from text representation |...〉, |...>, or [...] */
         explicit fockstate(const char *str);
+        /* construct from text representation and possible annotation list */
+        explicit fockstate(const char *str, std::unordered_map<int, annotation> &photon);
         explicit fockstate(const std::vector<int> &fs_vec);
         fockstate(const fockstate &);
         fockstate(int m, int n);
@@ -74,7 +80,7 @@ class fockstate {
          * @return the product of factorial
          */
         unsigned long long prodnfact() const;
-        std::string to_str() const;
+        std::string to_str(bool clear_annotations=false) const;
         inline int get_m() const { return _m; }
         inline int get_n() const { return _n; }
         inline const char *get_code() const { return _code; }
@@ -106,6 +112,8 @@ class fockstate {
         int _n;
         char *_code;
         bool _owned_data;
+        /* annotations of photons in different modes */
+        std::unordered_map<size_t, std::list<std::pair<int, annotation*>>> _annotation_map;
 };
 
 #endif

@@ -89,6 +89,20 @@ SCENARIO("C++ Testing FockState") {
                 REQUIRE(fs.to_str() == txt);
             }
         }
+
+        WHEN("Instantiating with annotation") {
+            const char *txt = GENERATE("|{P:H}>", "|{P:H}{P:V},1>", "|2{_:0.23}>", "|{P:H}1,{P:V}>");
+            fockstate fs(txt);
+            THEN("instance has same txt representation") {
+                REQUIRE(fs.to_str() == txt);
+            }
+        }
+
+        WHEN("Special annotation rewriting") {
+            REQUIRE(fockstate("|{P:H}{P:H}>").to_str() == "|2{P:H}>");
+            REQUIRE(fockstate("|{P:(0,0)}{P:H},0>").to_str() == "|2{P:H},0>");
+            REQUIRE(fockstate("|{P:(0,0)}{P:H}>").to_str(true) == "|2>");
+        }
     }
     SECTION("multiple string constructors - space insensitive") {
         REQUIRE(fockstate("[0,1]").to_str() == "|0,1>");
