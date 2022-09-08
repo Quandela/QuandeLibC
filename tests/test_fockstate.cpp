@@ -243,19 +243,18 @@ SCENARIO("C++ Testing FockState") {
                           std::invalid_argument);
     }
     SECTION("get mode annotation") {
-        fockstate fs("|1,{A:0}2,0,{P:V}{P:H}>");
+        fockstate fs("|1,{A:0}2,0,{P:H,x:0}{P:V}>");
         auto l = fs.get_mode_annotations(1);
         REQUIRE(l.size()==3);
-        REQUIRE(l.front().name()=="A");
-        REQUIRE(l.front().value().real()==0);
+        REQUIRE(l.front().to_str()=="A:0");
         l.pop_front();
-        REQUIRE(l.front().name()=="");
+        REQUIRE(l.front().to_str()=="");
         l.pop_front();
-        REQUIRE(l.front().name()=="");
+        REQUIRE(l.front().to_str()=="");
         l = fs.get_mode_annotations(3);
         REQUIRE(l.size()==2);
-        REQUIRE(l.front().name()=="P");
+        REQUIRE(l.front().to_str()=="P:V");
         l.pop_front();
-        REQUIRE(l.front().name()=="P");
+        REQUIRE(l.front().to_str()=="P:H,x:0");
     }
 }

@@ -41,6 +41,15 @@ class annotation : public std::unordered_map<std::string, std::complex<float>> {
         bool has_polarization() const {
             return has_tag("P");
         }
+        bool operator==(const annotation &b) {
+            if (b.size() != this->size()) return false;
+            for(auto it: *this) {
+                if (b.find(it.first) == b.end()) return false;
+                if (it.second != b.at(it.first)) return false;
+            }
+            return true;
+        }
+        std::string str_value(const std::string &tag) const;
 };
 
 #endif

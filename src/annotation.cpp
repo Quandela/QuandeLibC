@@ -120,30 +120,37 @@ annotation::annotation(const char *str) {
     } while(*str);
 }
 
+std::string annotation::str_value(const std::string &tag) const {
+    std::stringstream s;
+    auto value = this->at(tag);
+    bool special_annot = false;
+    if (tag == "P") {
+        special_annot = true;
+        if (value == std::complex<float>(0)) { s << "H"; }
+        else if (value == std::complex<float>(pi)) { s << "V"; }
+        else if (value == std::complex<float>(pi / 2)) { s << "D"; }
+        else if (value == std::complex<float>(pi / 2, pi)) { s << "A"; }
+        else if (value == std::complex<float>(pi / 2, pi / 2)) { s << "L"; }
+        else if (value == std::complex<float>(pi / 2, 3 * pi / 2)) { s << "R"; }
+        else special_annot = false;
+    }
+    if (!special_annot) {
+        if (value.imag() == 0) {
+            s << value.real();
+        } else {
+            s << "(" << value.real() << "," << value.imag() << ")";
+        }
+    }
+    return s.str();
+}
+
 std::string annotation::to_str() const {
     std::stringstream s;
     bool first = true;
     for(auto nv_iter: (*this)) {
         if (!first) s << ","; else first=false;
         s << nv_iter.first << ":";
-        bool special_annot = false;
-        if (nv_iter.first == "P") {
-            special_annot = true;
-            if (nv_iter.second == std::complex<float>(0)) { s << "H"; }
-            else if (nv_iter.second == std::complex<float>(pi)) { s << "V"; }
-            else if (nv_iter.second == std::complex<float>(pi / 2)) { s << "D"; }
-            else if (nv_iter.second == std::complex<float>(pi / 2, pi)) { s << "A"; }
-            else if (nv_iter.second == std::complex<float>(pi / 2, pi / 2)) { s << "L"; }
-            else if (nv_iter.second == std::complex<float>(pi / 2, 3 * pi / 2)) { s << "R"; }
-            else special_annot = false;
-        }
-        if (!special_annot) {
-            if (nv_iter.second.imag() == 0) {
-                s << nv_iter.second.real();
-            } else {
-                s << "(" << nv_iter.second.real() << "," << nv_iter.second.imag() << ")";
-            }
-        }
+        s << str_value(nv_iter.first);
     }
     return s.str();
 }

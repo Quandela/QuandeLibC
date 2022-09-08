@@ -155,10 +155,18 @@ PYBIND11_MODULE(quandelibc, m) {
     py::class_<annotation>(m, "Annotation")
         .def(py::init<>(), "empty annotation constructor")
         .def(py::init<const char *>(), "constructor from string", py::arg("s"))
-        .def_property("name", &annotation::name, nullptr)
-        .def_property("value", &annotation::value, nullptr)
+        .def("__getitem__",
+             [=](annotation const& a, std::string const& name) -> py::object {
+                 if (a.has_tag(name)) {
+                     return py::cast(a.at(name));
+                 }
+                 return py::object(py::cast(nullptr));})
+         .def("__iter__",
+                 [](const annotation &s) { return py::make_iterator(s.begin(), s.end()); },
+                 py::keep_alive<0, 1>())
         .def("__str__", &annotation::to_str)
-        .def("__eq__", &annotation::operator==, py::arg("b"));
+        .def("str_value", &annotation::str_value, "give string representation of the tag value", py::arg("tag"))
+        .def("__eq__", &annotation::operator==, "compare two annotations", py::arg("b"));
 
     py::class_<fockstate>(m, "FockState")
         .def(py::init<>(),
