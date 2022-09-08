@@ -35,8 +35,6 @@ typedef std::unordered_map<size_t, std::list<std::pair<int, annotation*>>> map_m
 
 class fockstate {
     friend class fs_array;
-    friend bool operator==(const fockstate &, const fockstate &);
-    friend bool operator!=(const fockstate &, const fockstate &);
 
     public:
         fockstate();
@@ -54,20 +52,20 @@ class fockstate {
         ~fockstate();
         fockstate copy() const;
         unsigned long long hash() const;
-        int operator[](int idx) const;
         fockstate &operator=(const fockstate &);
+
+        /* operations on fockstate */
         fockstate &operator+=(const fockstate &);
         fockstate &operator+=(int);
         fockstate operator+(const fockstate &) const;
         fockstate operator+(int) const;
         fockstate &operator++();
         fockstate operator*(const fockstate &) const;
+        bool operator==(const fockstate &) const;
+        bool operator!=(const fockstate &) const;
 
-        bool has_annotations() const { return !_annotation_map.empty(); }
-        bool has_polarization() const;
-        void clear_annotations();
-
-        void _check_slice(int &start, int &end, int step, int &slice_m, int &slice_n) const;
+        /* access photon and mode */
+        int operator[](int idx) const;
         /* photon_idx to mode */
         inline int photon2mode(int photon_idx) const {
             if (photon_idx < 0 || photon_idx >= _n) throw std::out_of_range("photon index out of range");
@@ -81,6 +79,14 @@ class fockstate {
             if (k == _n || _code[k]-'A' != mode_idx) return -1;
             return k;
         }
+
+        /* annotation specific functions */
+        bool has_annotations() const { return !_annotation_map.empty(); }
+        bool has_polarization() const;
+        void clear_annotations();
+        std::list<annotation> get_mode_annotations(unsigned int) const;
+
+        /* slice utility */
         fockstate slice(int start, int end, int step=1) const;
         fockstate set_slice(const fockstate &fs, int start, int end) const;
         /**
@@ -88,7 +94,7 @@ class fockstate {
          * @return the product of factorial
          */
         unsigned long long prodnfact() const;
-        std::string to_str(bool clear_annotations=false) const;
+        std::string to_str(bool show_annotations=true) const;
         inline int get_m() const { return _m; }
         inline int get_n() const { return _n; }
         inline const char *get_code() const { return _code; }
@@ -116,6 +122,7 @@ class fockstate {
         const_iterator begin() const { return {this, 0}; }
         const_iterator end() const { return {this, _m}; }
     private:
+        void _check_slice(int &start, int &end, int step, int &slice_m, int &slice_n) const;
         int _m;
         int _n;
         char *_code;

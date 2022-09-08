@@ -28,12 +28,20 @@
 
 class annotation {
     public:
+        /* empty annotation */
+        annotation() {}
         /* read a key-value KEY:VALUE annotation */
         explicit annotation(const char *str);
         annotation(std::string name, const std::complex<float> &value):_name(std::move(name)), _value(value) {}
-        [[nodiscard]] const std::string &name() const { return _name; }
-        [[nodiscard]] const std::complex<float> &value() const { return _value; }
-        [[nodiscard]] std::string to_str() const;
+        const std::string &name() const { return _name; }
+        const std::complex<float> &value() const { return _value; }
+        std::string to_str() const;
+        bool operator==(const annotation &b) const {
+            return _name == b._name && _value == b._value;
+        }
+        bool operator!=(const annotation &b) const {
+            return !(*this==b);
+        }
     private:
         std::string _name;
         std::complex<float> _value;

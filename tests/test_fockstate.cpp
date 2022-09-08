@@ -101,7 +101,7 @@ SCENARIO("C++ Testing FockState") {
         WHEN("Special annotation rewriting") {
             REQUIRE(fockstate("|{P:H}{P:H}>").to_str() == "|2{P:H}>");
             REQUIRE(fockstate("|{P:(0,0)}{P:H},0>").to_str() == "|2{P:H},0>");
-            REQUIRE(fockstate("|{P:(0,0)}{P:H}>").to_str(true) == "|2>");
+            REQUIRE(fockstate("|{P:(0,0)}{P:H}>").to_str(false) == "|2>");
         }
     }
     SECTION("multiple string constructors - space insensitive") {
@@ -128,7 +128,7 @@ SCENARIO("C++ Testing FockState") {
         fs3 += fockstate("|{P:H},{P:V},0>");
         REQUIRE(fs3.to_str() == "|2{P:H}2,{P:V}4,0>");
         REQUIRE((fs3+fs3).to_str() == "|4{P:H}4,2{P:V}8,0>");
-        REQUIRE((fs3+fs3).to_str(true) == "|8,10,0>");
+        REQUIRE((fs3+fs3).to_str(false) == "|8,10,0>");
     }
     SECTION("test photon to mode") {
         fockstate fs1(std::vector<int>{0, 1, 0});
@@ -179,7 +179,7 @@ SCENARIO("C++ Testing FockState") {
             fockstate fs2("|{P:V},3>");
             fockstate fs3(fs1*fs2);
             REQUIRE(fs3.to_str()=="|{P:H},0,2{_:(1,2)},{P:V},3>");
-            REQUIRE(fs3.to_str(true)=="|1,0,2,1,3>");
+            REQUIRE(fs3.to_str(false)=="|1,0,2,1,3>");
         }
     }
     SECTION("prodnfact") {
@@ -232,6 +232,7 @@ SCENARIO("C++ Testing FockState") {
         REQUIRE(fs.slice(1,6,3) == fockstate(std::vector<int>{1, 1}));
         REQUIRE(fs.slice(0,8) == fs);
         REQUIRE(fs.slice(2,1) == fockstate(0, 0));
+        REQUIRE(fockstate("|1,{A:0}2,0>").slice(1,3).to_str() == "|{A:0}2,0>");
     }
     SECTION("Fockstate set slice") {
         fockstate fs(std::vector<int>{0,1,0,2,1,1});
@@ -239,5 +240,16 @@ SCENARIO("C++ Testing FockState") {
                         fockstate(std::vector<int>{0,1,2,0,3,1}));
         REQUIRE_THROWS_AS(fs.set_slice(fockstate(std::vector<int>{2,0}),2,3),
                           std::invalid_argument);
+    }
+    SECTION("get mode annotation") {
+        fockstate fs("|1,{A:0}2,0,{P:V}{P:H}>");
+        auto l = fs.get_mode_annotations(1);
+        REQUIRE(l.size()==3);
+        REQUIRE(l.front().name()=="A");
+        REQUIRE(l.front().value().real()==0);
+        l.pop_front();
+        REQUIRE(l.front().name()=="");
+        l.pop_front();
+        REQUIRE(l.front().name()=="");
     }
 }

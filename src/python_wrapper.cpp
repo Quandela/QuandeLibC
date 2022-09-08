@@ -152,7 +152,17 @@ PYBIND11_MODULE(quandelibc, m) {
 
     m.attr("npos") = py::int_(fs_npos);
 
+    py::class_<annotation>(m, "Annotation")
+        .def(py::init<>(), "empty annotation constructor")
+        .def(py::init<const char *>(), "constructor from string", py::arg("s"))
+        .def_property("name", &annotation::name, nullptr)
+        .def_property("value", &annotation::value, nullptr)
+        .def("__str__", &annotation::to_str)
+        .def("__eq__", &annotation::operator==, py::arg("b"));
+
     py::class_<fockstate>(m, "FockState")
+        .def(py::init<>(),
+             "empty fockstate")
         .def(py::init<fockstate>(),
              "constructor from existing fockstate", py::arg("fs"))
         .def(py::init<int>(),
@@ -167,7 +177,7 @@ PYBIND11_MODULE(quandelibc, m) {
         .def("__iter__",
             [](const fockstate &s) { return py::make_iterator(s.begin(), s.end()); },
             py::keep_alive<0, 1>())
-        .def("__str__", &fockstate::to_str)
+        .def("__str__", &fockstate::to_str, py::arg("show_annotations")=true)
         .def(py::self == py::self)
         .def(py::self != py::self)
         .def("__hash__", &fockstate::hash)
@@ -177,7 +187,11 @@ PYBIND11_MODULE(quandelibc, m) {
         .def("__iadd__", (fockstate&(fockstate::*)(int)) &fockstate::operator+=)
         .def("__mul__", &fockstate::operator*)
         .def("__rmul__", &fockstate::operator*)
+        .def("__eq__", &fockstate::operator==, py::arg("b"))
+        .def("__ne__", &fockstate::operator!=, py::arg("b"))
         .def("slice", &fockstate::slice)
+        .def("clear_annotations", &fockstate::clear_annotations)
+        .def("get_mode_annotations", &fockstate::get_mode_annotations)
         .def("photon2mode", &fockstate::photon2mode)
         .def("mode2photon", &fockstate::mode2photon)
         .def("prodnfact", &fockstate::prodnfact)
