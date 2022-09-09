@@ -6,13 +6,19 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Deploy on PyPi
+name: Build and Deploy on PyPi
 
 on:
   release:
     types: [published]
 
   workflow_dispatch:
+    inputs:
+      publish:
+        description: publish to PyPi
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   build-wheel:
@@ -50,6 +56,7 @@ jobs:
         path: dist
 
   deploy:
+    if: github.event_name == 'release' || ${{ github.event.inputs.publish }}
     name: Publish to PyPi
     needs:
     - build-wheel
