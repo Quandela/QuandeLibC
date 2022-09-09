@@ -2,11 +2,13 @@ name: C++ Unit Tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - release/*
   pull_request:
     branches:
       - main
-      - 'releases/**'
+      - release/*
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
