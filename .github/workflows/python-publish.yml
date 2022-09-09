@@ -56,7 +56,7 @@ jobs:
         path: dist
 
   deploy:
-    if: github.event_name == 'release' || github.event.inputs.publish
+    if: github.event_name == 'release' || inputs.publish
     name: Publish to PyPi
     needs:
     - build-wheel
