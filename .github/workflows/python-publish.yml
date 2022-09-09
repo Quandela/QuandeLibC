@@ -22,6 +22,7 @@ on:
 
 jobs:
   build-wheel:
+    if: github.event_name == 'release' || ${{ github.event.inputs.publish }}
     name: Build wheels for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
