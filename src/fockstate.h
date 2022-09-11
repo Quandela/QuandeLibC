@@ -43,35 +43,39 @@ class fockstate {
         /* construct from text representation |...〉, |...>, or [...] */
         explicit fockstate(const char *str);
         /* construct from text representation and possible annotation list */
-        explicit fockstate(const char *str, const map_m_lannot &photon_annotation);
+        explicit fockstate(const char *str, const std::map<int, std::list<std::string>> &annotations);
         explicit fockstate(const std::vector<int> &fs_vec);
+        explicit fockstate(const std::vector<int> &fs_vec, const std::map<int, std::list<std::string>> &annotations);
         fockstate(const fockstate &);
         fockstate(int m, int n);
         fockstate(int m, int n, const char *code, bool owned_data=false);
-        fockstate(int m, int n, const char *code, const map_m_lannot &annots, bool owned_data=false);
+        fockstate(int m, int n, const char *code, map_m_lannot annots, bool owned_data=false);
         ~fockstate();
         fockstate copy() const;
         unsigned long long hash() const;
         fockstate &operator=(const fockstate &);
 
         /* operations on fockstate */
-        fockstate &operator+=(const fockstate &);
+        /** joining 2 fockstate */
+        fockstate operator|(const fockstate &) const;
+        fockstate &operator|=(const fockstate &);
+        /** iterator on fockstates */
         fockstate &operator+=(int);
-        fockstate operator+(const fockstate &) const;
         fockstate operator+(int) const;
         fockstate &operator++();
+        /** tensor product **/
         fockstate operator*(const fockstate &) const;
         bool operator==(const fockstate &) const;
         bool operator!=(const fockstate &) const;
 
-        /* access photon and mode */
+        /** access photon and mode **/
         int operator[](int idx) const;
-        /* photon_idx to mode */
+        /** photon_idx to mode **/
         inline int photon2mode(int photon_idx) const {
             if (photon_idx < 0 || photon_idx >= _n) throw std::out_of_range("photon index out of range");
             return _code[photon_idx]-'A';
         }
-        /* retrieve first photon idx in given mode - or -1 if none */
+        /** retrieve first photon idx in given mode - or -1 if none **/
         inline int mode2photon(int mode_idx) const {
             if (mode_idx < 0 || mode_idx >= _m) throw std::out_of_range("mode index out of range");
             int k=0;
@@ -80,15 +84,25 @@ class fockstate {
             return k;
         }
 
-        /* annotation specific functions */
+        /** annotation specific functions **/
         bool has_annotations() const { return !_annotation_map.empty(); }
         bool has_polarization() const;
         void clear_annotations();
-        std::list<annotation> get_mode_annotations(unsigned int) const;
+        std::list<annotation> get_mode_annotations(int) const;
+        annotation get_photon_annotation(int idx) const;
 
-        /* slice utility */
+        void set_mode_annotations(int, const std::list<annotation> &);
+
+        /**
+         * from annotated states distinguishable groups of non annotated indistinguishables fockstates
+         * @return list of non annotated fockstates
+         */
+        std::list<fockstate> separate_state() const;
+
+        /** slicing utilities **/
         fockstate slice(int start, int end, int step=1) const;
         fockstate set_slice(const fockstate &fs, int start, int end) const;
+
         /**
          * product of factorial $n_k$ used as normalization
          * @return the product of factorial
@@ -129,6 +143,10 @@ class fockstate {
         bool _owned_data;
         /* annotations of photons in different modes */
         map_m_lannot _annotation_map;
+
+        void _parse_str(const char *str);
+        void _set_annotations(const std::map<int, std::list<std::string>> &annotations);
+        void _set_fs_vect(const std::vector<int> &fs_vect);
 };
 
 #endif

@@ -41,7 +41,7 @@ fockstate::fockstate(): _m(0), _n(0), _code(nullptr), _owned_data(true) {
 fockstate::fockstate(int m): _m(m), _n(0), _code(n0_buffer), _owned_data(false) {
 }
 
-fockstate::fockstate(const char *str) {
+void fockstate::_parse_str(const char *str) {
     str = skip_blanks(str);
     char open_char = *str;
     if (*str != '[' && *str != '|' && *str != '(')
@@ -70,6 +70,8 @@ fockstate::fockstate(const char *str) {
                     str++;
                 }
             if (*str == '{') {
+                if (!cn)
+                    throw std::invalid_argument("invalid fock state representation (annotation on 0 photons)");
                 unsigned int j = 1;
                 for (; str[j] && str[j] != '}'; j++);
                 if (!str[j])
@@ -102,7 +104,7 @@ fockstate::fockstate(const char *str) {
                 auto annot = iter.first;
                 auto pair_count_annot = iter.second;
                 _annotation_map[fs_vect.size()].push_back(std::make_pair(pair_count_annot.first,
-                                                                            pair_count_annot.second));
+                                                                         pair_count_annot.second));
             }
         }
         fs_vect.push_back(total_cn);
@@ -119,7 +121,7 @@ fockstate::fockstate(const char *str) {
     if ((open_char == '[' && *str != ']') ||
         (open_char == '(' && *str != ')') ||
         (open_char == '|' && !(*str == '>' || strncmp(str, "〉", 3) == 0)))
-            throw std::invalid_argument("invalid fock state representation (bad close)");
+        throw std::invalid_argument("invalid fock state representation (bad close)");
 
     if (strchr(">)]", *str)) str++; else str+=3;
     str = skip_blanks(str);
@@ -144,6 +146,27 @@ fockstate::fockstate(const char *str) {
     }
 }
 
+void fockstate::_set_annotations(const std::map<int, std::list<std::string>> &annotations) {
+    for(const auto& iter: annotations) {
+        std::map<std::string, std::pair<int, annotation *>> mode_annotations;
+        int m_k = iter.first;
+        std::list<annotation> la;
+        for(auto &annot_str: iter.second)
+            la.emplace_back(annot_str.c_str());
+        set_mode_annotations(m_k, la);
+    }
+}
+
+fockstate::fockstate(const char *str) {
+    _parse_str(str);
+}
+
+fockstate::fockstate(const char *str, const std::map<int, std::list<std::string>> &annotations) {
+    _parse_str(str);
+    _set_annotations(annotations);
+}
+
+
 fockstate::fockstate(const fockstate &b):_m(b._m), _n(b._n) {
     if (b._code) {
         if (_n) {
@@ -154,7 +177,7 @@ fockstate::fockstate(const fockstate &b):_m(b._m), _n(b._n) {
             _code = n0_buffer;
             _owned_data = false;
         }
-        for(auto iter: b._annotation_map) {
+        for(const auto& iter: b._annotation_map) {
             auto idx = iter.first;
             auto &la = iter.second;
             _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
@@ -173,7 +196,7 @@ fockstate &fockstate::operator=(const fockstate &b) {
         delete [] _code;
     }
     clear_annotations();
-    for(auto iter: b._annotation_map) {
+    for(const auto& iter: b._annotation_map) {
         auto idx = iter.first;
         auto &la = iter.second;
         _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
@@ -197,9 +220,9 @@ fockstate &fockstate::operator=(const fockstate &b) {
     return *this;
 }
 
-fockstate::fockstate(const std::vector<int> &fs_vect):_m(fs_vect.size()) {
+void fockstate::_set_fs_vect(const std::vector<int> &fs_vect) {
     _n = 0;
-    for(int i=0; i<_m; i++) _n += fs_vect[i];
+    for (int i = 0; i < _m; i++) _n += fs_vect[i];
     if (!_n) {
         _code = n0_buffer;
         _owned_data = false;
@@ -208,9 +231,19 @@ fockstate::fockstate(const std::vector<int> &fs_vect):_m(fs_vect.size()) {
     _code = new char[_n];
     _owned_data = true;
     int k = 0;
-    for(int i=0; i<_m; i++)
-        for(int j=0; j<fs_vect[i]; j++)
-            _code[k++] = char(i+65);
+    for (int i = 0; i < _m; i++)
+        for (int j = 0; j < fs_vect[i]; j++)
+            _code[k++] = char(i + 65);
+}
+
+fockstate::fockstate(const std::vector<int> &fs_vect):_m(int(fs_vect.size())) {
+    _set_fs_vect(fs_vect);
+}
+
+fockstate::fockstate(const std::vector<int> &fs_vect,
+                     const std::map<int, std::list<std::string>> &annotations):_m(int(fs_vect.size())) {
+    _set_fs_vect(fs_vect);
+    _set_annotations(annotations);
 }
 
 fockstate::fockstate(int m, int n): _m(m), _n(n) {
@@ -228,10 +261,10 @@ fockstate::fockstate(int m, int n, const char *code, bool owned_data):_m(m), _n(
                                                                       _owned_data(owned_data) {
 }
 
-fockstate::fockstate(int m, int n, const char *code, const map_m_lannot &annots, bool owned_data):
+fockstate::fockstate(int m, int n, const char *code, map_m_lannot annots, bool owned_data):
                                                                       _m(m), _n(n), _code((char*)code),
                                                                       _owned_data(owned_data),
-                                                                      _annotation_map(annots) {
+                                                                      _annotation_map(std::move(annots)) {
 }
 
 fockstate::~fockstate() {
@@ -258,7 +291,7 @@ void fockstate::to_vect(std::vector<int> &fs_vect) const {
         fs_vect[_code[i]-65]++;
 }
 
-fockstate fockstate::operator+(const fockstate &b) const {
+fockstate fockstate::operator|(const fockstate &b) const {
     if (!_code || !b._code)
         throw std::invalid_argument("cannot make operation on ndef-state");
     if (_m != b._m)
@@ -275,7 +308,7 @@ fockstate fockstate::operator+(const fockstate &b) const {
             _new_code[k++] = _code[k_this++];
     }
     map_m_lannot new_annotation_map;
-    for(auto iter: _annotation_map) {
+    for(const auto& iter: _annotation_map) {
         auto idx = iter.first;
         auto &list_self_annots = iter.second;
         new_annotation_map[idx] =  std::list<std::pair<int, annotation*>>();
@@ -283,7 +316,7 @@ fockstate fockstate::operator+(const fockstate &b) const {
             new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
         }
     }
-    for(auto iter: b._annotation_map) {
+    for(const auto& iter: b._annotation_map) {
         auto idx = iter.first;
         auto &list_b_annots = iter.second;
         if (new_annotation_map.find(idx) == new_annotation_map.end())
@@ -354,7 +387,7 @@ fockstate fockstate::operator*(const fockstate &b) const {
         k++;
     }
     map_m_lannot new_annotation_map;
-    for(auto iter: _annotation_map) {
+    for(const auto& iter: _annotation_map) {
         auto idx = iter.first;
         auto list_self_annots = iter.second;
         new_annotation_map[idx] =  std::list<std::pair<int, annotation*>>();
@@ -362,7 +395,7 @@ fockstate fockstate::operator*(const fockstate &b) const {
             new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
         }
     }
-    for(auto iter: b._annotation_map) {
+    for(const auto& iter: b._annotation_map) {
         auto idx = iter.first;
         auto list_b_annots = iter.second;
         new_annotation_map[idx+_m] = std::list<std::pair<int, annotation*>>();
@@ -374,25 +407,71 @@ fockstate fockstate::operator*(const fockstate &b) const {
     return {_m+b._m, k, _new_code, new_annotation_map, true};
 }
 
-std::list<annotation> fockstate::get_mode_annotations(unsigned int idx) const {
+std::list<annotation> fockstate::get_mode_annotations(int idx) const {
     std::list<annotation> l;
     auto map_iter = _annotation_map.find(idx);
     int i=0;
     if (map_iter != _annotation_map.end()) {
         for(auto const &p: map_iter->second) {
             for(int j=0; j<p.first; i++, j++) {
-                l.push_back(annotation(*p.second));
+                l.emplace_back(*p.second);
             }
         }
     }
     for(; i<(*this)[idx]; i++)
-        l.push_back(annotation());
+        l.emplace_back();
     return l;
+}
+
+void fockstate::set_mode_annotations(int m_k, const std::list<annotation> &la) {
+    if (m_k < 0 || m_k >= _m)
+        throw std::invalid_argument("invalid mode index");
+    _annotation_map[m_k] = std::list<std::pair<int, annotation *>>();
+    std::map<std::string, std::pair<int, annotation *>> mode_annotations;
+    int count_mode_annotations = 0;
+    for(auto &annot: la) {
+        count_mode_annotations += 1;
+        std::string normal_form = annot.to_str();
+        if (mode_annotations.find(normal_form) == mode_annotations.end()) {
+            mode_annotations[normal_form] = std::make_pair(1, new annotation(annot));
+        } else {
+            mode_annotations[normal_form].first += 1;
+        }
+    }
+    if (count_mode_annotations > (*this)[m_k])
+        throw std::invalid_argument("invalid mode annotations");
+
+    _annotation_map[m_k] = std::list<std::pair<int, annotation *>>();
+    for(const auto& iter_annot: mode_annotations) {
+        _annotation_map[m_k].push_back(iter_annot.second);
+    }
+}
+
+annotation fockstate::get_photon_annotation(int idx) const {
+    int m_k = photon2mode(idx);
+    int first_idx = mode2photon(m_k);
+    int n_k = 0;
+    if (_annotation_map.find(m_k) == _annotation_map.end())
+        return annotation();
+    auto iter = _annotation_map.at(m_k).begin();
+    auto iter_end = _annotation_map.at(m_k).end();
+    while(first_idx < idx) {
+        n_k++;
+        if (iter != iter_end && n_k == iter->first) {
+            iter++;
+            n_k = 0;
+        }
+        first_idx += 1;
+    }
+    if (iter != iter_end) {
+        return annotation(*(iter->second));
+    }
+    return annotation();
 }
 
 bool fockstate::has_polarization() const {
     if (_annotation_map.empty()) return false;
-    for(auto iter: _annotation_map) {
+    for(const auto& iter: _annotation_map) {
         auto la = iter.second;
         for(auto const &p: la) {
             if (p.second->has_polarization()) return true;
@@ -402,9 +481,9 @@ bool fockstate::has_polarization() const {
 }
 
 void fockstate::clear_annotations() {
-    for(auto iter: _annotation_map) {
+    for(auto& iter: _annotation_map) {
         auto la = iter.second;
-        for(auto const & p: la)
+        for(auto & p: la)
             delete p.second;
     }
     _annotation_map.clear();
@@ -474,7 +553,7 @@ fockstate fockstate::set_slice(const fockstate &fs, int start, int end) const {
     for(;_code && i<_n;i++)
         _new_code[k++] = _code[i];
     map_m_lannot new_annotation_map;
-    for(auto iter: _annotation_map) {
+    for(const auto& iter: _annotation_map) {
         auto idx = iter.first;
         auto la = iter.second;
         if (int(idx) < start || int(idx) >= end) {
@@ -484,7 +563,7 @@ fockstate fockstate::set_slice(const fockstate &fs, int start, int end) const {
             }
         }
     }
-    for(auto iter: fs._annotation_map) {
+    for(const auto& iter: fs._annotation_map) {
         auto idx = iter.first;
         auto lb = iter.second;
         new_annotation_map[idx+start] = std::list<std::pair<int, annotation *>>();
@@ -495,7 +574,7 @@ fockstate fockstate::set_slice(const fockstate &fs, int start, int end) const {
     return {get_m(), new_n, _new_code, true};
 }
 
-fockstate &fockstate::operator+=(const fockstate &b) {
+fockstate &fockstate::operator|=(const fockstate &b) {
     if (!_code || !b._code)
         throw std::invalid_argument("cannot make operation on ndef-state");
     if (_m != b._m)
@@ -513,7 +592,7 @@ fockstate &fockstate::operator+=(const fockstate &b) {
         else
             _new_code[k++] = _code[k_this++];
     }
-    for(auto iter: b._annotation_map) {
+    for(const auto& iter: b._annotation_map) {
         auto idx = iter.first;
         auto list_b_annots = iter.second;
         if (_annotation_map.find(idx) == _annotation_map.end())
@@ -575,7 +654,7 @@ bool fockstate::operator==(const fockstate &b) const {
         if (a._code[i] != b._code[i]) return false;
     if (a._annotation_map.size() != b._annotation_map.size())
         return false;
-    for (auto iter: a._annotation_map) {
+    for (const auto& iter: a._annotation_map) {
         auto idx = iter.first;
         auto la = iter.second;
         auto ilb = b._annotation_map.find(idx);
@@ -646,4 +725,69 @@ int fockstate::operator[](int idx) const {
     for(int i=0;i<_n && _code[i]-'A'<=idx; i++)
         if (_code[i]-'A'==idx) nc++;
     return nc;
+}
+
+std::list<fockstate> fockstate::separate_state() const {
+    std::list<fockstate> states;
+    if (!_n)
+        states.push_back(*this);
+    else {
+        /* check which photon needs to be distinguished - if we have n photons, we might end-up with n partitions */
+        std::list<std::pair<annotation, std::list<int>>> photon_groups;
+        int last_mode = -1;
+        std::list<std::pair<int, annotation *>>::const_iterator iter_list;
+        std::list<std::pair<int, annotation *>>::const_iterator iter_list_end;
+        int in_mode_dup = 0;
+        for(int k=0; k<_n; k++) {
+            int m_k = photon2mode(k);
+            if (last_mode != m_k) {
+                if (_annotation_map.find(m_k) != _annotation_map.end()) {
+                    iter_list = _annotation_map.at(m_k).begin();
+                    iter_list_end = _annotation_map.at(m_k).end();
+                    in_mode_dup = 0;
+                    last_mode = m_k;
+                }
+            }
+            annotation annot_k;
+            if (iter_list != iter_list_end) {
+                annot_k = *(*iter_list).second;
+                in_mode_dup += 1;
+                if (in_mode_dup == (*iter_list).first) {
+                    iter_list++;
+                    in_mode_dup = 0;
+                }
+            }
+            bool merged_photon = false;
+            for (auto annot_photon: photon_groups) {
+                annotation merge_annot;
+                bool can_merge = annot_photon.first.compatible_annotation(annot_k, merge_annot);
+                if (can_merge) {
+                    annot_photon.first = merge_annot;
+                    annot_photon.second.push_back(k);
+                    merged_photon = true;
+                    break;
+                }
+            }
+            if (!merged_photon) {
+                photon_groups.emplace_back(annot_k, std::list<int>());
+                photon_groups.back().second.push_back(k);
+            }
+        }
+
+        if (photon_groups.size() == 1) {
+            states.push_back(*this);
+            states.back().clear_annotations();
+        }
+        else {
+            // now iterate through photon_groups and generate corresponding non annotated states
+            for(const auto& annot_photon: photon_groups) {
+                std::vector<int> state(_m);
+                for(auto photon_id: annot_photon.second)
+                    state[photon2mode(photon_id)] += 1;
+                states.emplace_back(state);
+            }
+        }
+    }
+
+    return states;
 }

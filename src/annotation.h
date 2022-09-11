@@ -23,11 +23,11 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <complex>
 
-class annotation : public std::unordered_map<std::string, std::complex<float>> {
+class annotation : public std::map<std::string, std::complex<float>> {
     public:
         /* empty annotation */
         annotation() {}
@@ -49,7 +49,10 @@ class annotation : public std::unordered_map<std::string, std::complex<float>> {
             }
             return true;
         }
+        bool contains(const std::string &tag) const { return find(tag) != end(); }
+        std::complex<float> get(const std::string &tag, std::complex<float> def) const;
         std::string str_value(const std::string &tag) const;
+        bool compatible_annotation(const annotation &add_annot, annotation &new_annot) const;
 };
 
 #endif

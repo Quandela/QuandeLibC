@@ -73,7 +73,7 @@ SCENARIO("C++ Testing FockState") {
         }
 
         WHEN("Instantiating with invalid strings") {
-            const char *txt = GENERATE("", "|0à1>", "2", "|", "[0,1>", "{0,1}");
+            const char *txt = GENERATE("", "|0à1>", "2", "|", "[0,1>", "{0,1}", "|0{_:0}>");
 
             THEN("instantiation throw error") {
                 REQUIRE_THROWS_AS(fockstate(txt), std::invalid_argument);
@@ -98,6 +98,19 @@ SCENARIO("C++ Testing FockState") {
             }
         }
 
+        WHEN("Instantiating with vector and mode annotation") {
+            fockstate fs({1,0,2,1},
+                         {{0,{"P:H"}}});
+            REQUIRE(fs.to_str()== "|{P:H},0,2,1>");
+            /* invalid annotation */
+            REQUIRE_THROWS_AS(fockstate({1,0,2,1},
+                                        {{1,{"P:V"}}}), std::invalid_argument);
+            REQUIRE_THROWS_AS(fockstate({1,0,2,1},
+                                        {{4,{"P:V"}}}), std::invalid_argument);
+            REQUIRE_THROWS_AS(fockstate({1,0,2,1},
+                                        {{-1,{"P:V"}}}), std::invalid_argument);
+        }
+
         WHEN("Special annotation rewriting") {
             REQUIRE(fockstate("|{}{P:D}>").to_str() == "|{P:D}1>");
             REQUIRE(fockstate("|{P:H}{P:H}>").to_str() == "|2{P:H}>");
@@ -114,22 +127,22 @@ SCENARIO("C++ Testing FockState") {
     SECTION("from list, add/mul operation, equality") {
         fockstate fs1(std::vector<int>{0, 1, 0});
         fockstate fs2(std::vector<int>{1, 0, 0});
-        fockstate fs3 = fs1 + fs2;
+        fockstate fs3 = fs1 | fs2;
         REQUIRE(fs3 == fockstate(std::vector<int>{1, 1, 0}));
         REQUIRE(fs3.to_str() == "|1,1,0>");
-        fs3 += fs1;
+        fs3 |= fs1;
         REQUIRE(fs3.to_str() == "|1,2,0>");
-        fs3 += fs3;
+        fs3 |= fockstate(fs3);
         REQUIRE(fs3.to_str() == "|2,4,0>");
         REQUIRE(fs3 == fs3);
         REQUIRE(fs3 != fs1);
         REQUIRE(fs3.get_n() == 6);
-        fs3 += fockstate("|{P:H},0,0>");
+        fs3 |= fockstate("|{P:H},0,0>");
         REQUIRE(fs3.to_str() == "|{P:H}2,4,0>");
-        fs3 += fockstate("|{P:H},{P:V},0>");
+        fs3 |= fockstate("|{P:H},{P:V},0>");
         REQUIRE(fs3.to_str() == "|2{P:H}2,{P:V}4,0>");
-        REQUIRE((fs3+fs3).to_str() == "|4{P:H}4,2{P:V}8,0>");
-        REQUIRE((fs3+fs3).to_str(false) == "|8,10,0>");
+        REQUIRE((fs3|fs3).to_str() == "|4{P:H}4,2{P:V}8,0>");
+        REQUIRE((fs3|fs3).to_str(false) == "|8,10,0>");
     }
     SECTION("test photon to mode") {
         fockstate fs1(std::vector<int>{0, 1, 0});
@@ -208,12 +221,12 @@ SCENARIO("C++ Testing FockState") {
             return dist(mersenne_engine);
         };
 
-        std::map<long long, std::vector<int>> test_hash;
+        std::map<unsigned long long, std::vector<int>> test_hash;
         int nb_collisions = 0;
         for(int i=0; i<1000; i++) {
             std::vector<int> vec(10);
             generate(begin(vec), end(vec), gen);
-            long long hash=fockstate(vec).hash();
+            unsigned long long hash=fockstate(vec).hash();
             if (test_hash.find(hash) != test_hash.end()) {
                 if (test_hash[hash] != vec)
                     nb_collisions++;
@@ -243,18 +256,60 @@ SCENARIO("C++ Testing FockState") {
                           std::invalid_argument);
     }
     SECTION("get mode annotation") {
-        fockstate fs("|1,{A:0}2,0,{P:H,x:0}{P:V}>");
+        fockstate fs("|1,{A:0}2,0,{x:0,P:H}{P:V}>");
         auto l = fs.get_mode_annotations(1);
         REQUIRE(l.size()==3);
         REQUIRE(l.front().to_str()=="A:0");
         l.pop_front();
-        REQUIRE(l.front().to_str()=="");
+        REQUIRE(l.front().to_str().empty());
         l.pop_front();
-        REQUIRE(l.front().to_str()=="");
+        REQUIRE(l.front().to_str().empty());
         l = fs.get_mode_annotations(3);
         REQUIRE(l.size()==2);
-        REQUIRE(l.front().to_str()=="P:V");
-        l.pop_front();
-        REQUIRE(l.front().to_str()=="P:H,x:0");
+        if (l.front().to_str()=="P:V") {
+            l.pop_front();
+            REQUIRE(l.front().to_str()=="P:H,x:0");
+        } else {
+            REQUIRE(l.front().to_str() == "P:H,x:0");
+            l.pop_front();
+            REQUIRE(l.front().to_str() == "P:V");
+        }
+    }
+    SECTION("get photon annotation") {
+        fockstate fs("|1,{A:0}2,0,{x:0,P:H}2{P:V}, 1>");
+        REQUIRE(fs.get_photon_annotation(6).to_str() == "P:V");
+        std::vector<std::string> a{"","A:0", "", "", "P:H,x:0", "P:V", "P:V", ""};
+        for(int i=0; i<fs.get_n(); i++) {
+            REQUIRE(fs.get_photon_annotation(i).to_str() == a[i]);
+        }
+    }
+    SECTION("separate states - no annotations") {
+        auto state = GENERATE("|0,0>", "|1,2>", "|0,1>", "|2,1>");
+        fockstate fs(state);
+        auto l = fs.separate_state();
+        REQUIRE((l.size()==1 && l.front()==fs));
+    }
+
+    SECTION("separate states - some annotations") {
+        {
+            fockstate fs("|0,{_:1}>");
+            auto l = fs.separate_state();
+            REQUIRE((l.size() == 1 && l.front() == fockstate("|0,1>")));
+        }
+        {
+            fockstate fs("|{_:1},{_:1}>");
+            auto l = fs.separate_state();
+            REQUIRE((l.size() == 1 && l.front() == fockstate("|1,1>")));
+        }
+        {
+            fockstate fs("|{_:1},{_:2}>");
+            auto l = fs.separate_state();
+            REQUIRE((l.size() == 2 && l.front() == fockstate("|1,0>") && l.back() == fockstate("|0,1>")));
+        }
+        {
+            fockstate fs("|{_:1},{_:2},{_:1}>");
+            auto l = fs.separate_state();
+            REQUIRE((l.size() == 2 && l.front() == fockstate("|1,0,1>") && l.back() == fockstate("|0,1,0>")));
+        }
     }
 }

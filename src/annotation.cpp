@@ -154,3 +154,22 @@ std::string annotation::to_str() const {
     }
     return s.str();
 }
+
+bool annotation::compatible_annotation(const annotation &add_annot, annotation &new_annot) const {
+    new_annot = *this;
+    for (auto const &iter: add_annot) {
+        if (iter.first == "P") continue;
+        if (this->find(iter.first) == this->end())
+            new_annot[iter.first] = iter.second;
+        else {
+            if (this->at(iter.first) != iter.second)
+                return false;
+        }
+    }
+    return true;
+}
+
+std::complex<float> annotation::get(const std::string &tag, std::complex<float> def) const {
+    if (find(tag) == this->end()) return def;
+    return at(tag);
+}
