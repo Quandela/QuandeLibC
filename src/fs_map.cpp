@@ -58,8 +58,8 @@ fs_map::fs_map(const fs_array &fsa_current, const fs_array &fsa_parent, bool do_
     _n = nk-1;
     assert(fsa_parent.get_n()==_n);
     _step = 0;
-    // the number of bytes necessary to encode an fsa_current index in fsa_parent
-    // keep 0xff..ff for npos
+    // the number of bytes necessary to encode a fsa_current index in fsa_parent
+    // keep 0xff...0xff for npos
     for(auto c=fsa_current._count+1; c > 0; _step++, c >>= 8);
     _count = fsa_parent._count;
     if (do_generate)
