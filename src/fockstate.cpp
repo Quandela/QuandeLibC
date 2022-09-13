@@ -291,54 +291,6 @@ void fockstate::to_vect(std::vector<int> &fs_vect) const {
         fs_vect[_code[i]-65]++;
 }
 
-fockstate fockstate::operator|(const fockstate &b) const {
-    if (!_code || !b._code)
-        throw std::invalid_argument("cannot make operation on ndef-state");
-    if (_m != b._m)
-        throw std::invalid_argument("fockstate needs to have same dimension to add");
-    if (b._n == 0) return *this;
-    char *_new_code = new char[_n + b._n];
-    int k_this=0;
-    int k_b=0;
-    int k=0;
-    while (k_this<_n || k_b<b._n) {
-        if (k_this==_n || (k_b != b._n && b._code[k_b] <= _code[k_this]))
-            _new_code[k++] = b._code[k_b++];
-        else
-            _new_code[k++] = _code[k_this++];
-    }
-    map_m_lannot new_annotation_map;
-    for(const auto& iter: _annotation_map) {
-        auto idx = iter.first;
-        auto &list_self_annots = iter.second;
-        new_annotation_map[idx] =  std::list<std::pair<int, annotation*>>();
-        for(auto p_toadd: list_self_annots) {
-            new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
-        }
-    }
-    for(const auto& iter: b._annotation_map) {
-        auto idx = iter.first;
-        auto &list_b_annots = iter.second;
-        if (new_annotation_map.find(idx) == new_annotation_map.end())
-            new_annotation_map[idx] = std::list<std::pair<int, annotation*>>();
-        for(auto p_toadd: list_b_annots) {
-            std::string annot = p_toadd.second->to_str();
-            bool found = false;
-            for(auto & p_current:  new_annotation_map[idx]) {
-                if (p_current.second->to_str() == annot) {
-                    p_current.first += p_toadd.first;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                new_annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
-        }
-    }
-
-    return {_m, k, _new_code, new_annotation_map, true};
-}
-
 fockstate fockstate::operator+(int c) const {
     if (!_code)
         throw std::invalid_argument("cannot make operation on ndef-state");
@@ -572,52 +524,6 @@ fockstate fockstate::set_slice(const fockstate &fs, int start, int end) const {
         }
     }
     return {get_m(), new_n, _new_code, true};
-}
-
-fockstate &fockstate::operator|=(const fockstate &b) {
-    if (!_code || !b._code)
-        throw std::invalid_argument("cannot make operation on ndef-state");
-    if (_m != b._m)
-        throw std::invalid_argument("fockstate needs to have same dimension to add");
-    if (b._n == 0) {
-        return *this;
-    }
-    char *_new_code = new char[_n + b._n];
-    int k_this=0;
-    int k_b=0;
-    int k=0;
-    while (k_this < _n || k_b < b._n) {
-        if (k_this == _n || (k_b != b._n && b._code[k_b] <= _code[k_this]))
-            _new_code[k++] = b._code[k_b++];
-        else
-            _new_code[k++] = _code[k_this++];
-    }
-    for(const auto& iter: b._annotation_map) {
-        auto idx = iter.first;
-        auto list_b_annots = iter.second;
-        if (_annotation_map.find(idx) == _annotation_map.end())
-            _annotation_map[idx] = std::list<std::pair<int, annotation*>>();
-        for(auto p_toadd: list_b_annots) {
-            std::string annot = p_toadd.second->to_str();
-            bool found = false;
-            for(auto & p_current: _annotation_map[idx]) {
-                if (p_current.second->to_str() == annot) {
-                    p_current.first += p_toadd.first;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                _annotation_map[idx].push_back(std::make_pair(p_toadd.first, new annotation(*p_toadd.second)));
-        }
-    }
-    _n = k;
-    if (_owned_data)
-        delete [] _code;
-    else
-        _owned_data = true;
-    _code = _new_code;
-    return *this;
 }
 
 fockstate &fockstate::operator+=(int c) {

@@ -56,9 +56,6 @@ class fockstate {
         fockstate &operator=(const fockstate &);
 
         /* operations on fockstate */
-        /** joining 2 fockstate */
-        fockstate operator|(const fockstate &) const;
-        fockstate &operator|=(const fockstate &);
         /** iterator on fockstates */
         fockstate &operator+=(int);
         fockstate operator+(int) const;

@@ -124,26 +124,6 @@ SCENARIO("C++ Testing FockState") {
         REQUIRE(fockstate("[ 0,1] ").to_str() == "|0,1>");
         REQUIRE(fockstate("|0,1〉").to_str() == "|0,1>");
     }
-    SECTION("from list, add/mul operation, equality") {
-        fockstate fs1(std::vector<int>{0, 1, 0});
-        fockstate fs2(std::vector<int>{1, 0, 0});
-        fockstate fs3 = fs1 | fs2;
-        REQUIRE(fs3 == fockstate(std::vector<int>{1, 1, 0}));
-        REQUIRE(fs3.to_str() == "|1,1,0>");
-        fs3 |= fs1;
-        REQUIRE(fs3.to_str() == "|1,2,0>");
-        fs3 |= fockstate(fs3);
-        REQUIRE(fs3.to_str() == "|2,4,0>");
-        REQUIRE(fs3 == fs3);
-        REQUIRE(fs3 != fs1);
-        REQUIRE(fs3.get_n() == 6);
-        fs3 |= fockstate("|{P:H},0,0>");
-        REQUIRE(fs3.to_str() == "|{P:H}2,4,0>");
-        fs3 |= fockstate("|{P:H},{P:V},0>");
-        REQUIRE(fs3.to_str() == "|2{P:H}2,{P:V}4,0>");
-        REQUIRE((fs3|fs3).to_str() == "|4{P:H}4,2{P:V}8,0>");
-        REQUIRE((fs3|fs3).to_str(false) == "|8,10,0>");
-    }
     SECTION("test photon to mode") {
         fockstate fs1(std::vector<int>{0, 1, 0});
         REQUIRE(fs1.photon2mode(0) == 1);
