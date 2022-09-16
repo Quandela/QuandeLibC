@@ -552,7 +552,7 @@ unsigned long long fockstate::hash() const {
 
 bool fockstate::operator==(const fockstate &b) const {
     auto const &a = *this;
-    if (a._m != b._m) return false;
+    if (a._m != b._m || a._n != b._n) return false;
     if (a._m == 0 && b._m == 0) return true;
     if (a._code == nullptr && b._code == nullptr) return true;
     if (a._code == nullptr || b._code == nullptr) return false;
@@ -664,7 +664,7 @@ std::list<fockstate> fockstate::separate_state() const {
                 }
             }
             bool merged_photon = false;
-            for (auto annot_photon: photon_groups) {
+            for (auto &annot_photon: photon_groups) {
                 annotation merge_annot;
                 bool can_merge = annot_photon.first.compatible_annotation(annot_k, merge_annot);
                 if (can_merge) {
