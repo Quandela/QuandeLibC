@@ -22,6 +22,7 @@ find_package(Threads)
 
 set(QLIBC_SOURCES
         src/fockstate.cpp src/fockstate.h
+        src/annotation.h src/annotation.cpp
         src/fs_array.cpp src/fs_array.h
         src/fs_map.cpp src/fs_map.h
         src/fs_mask.cpp

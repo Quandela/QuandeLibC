@@ -142,17 +142,17 @@ def test_getitem():
 
 def test_getslice():
     fs = qc.FockState([0, 1, 0, 2, 1, 1])
-    assert fs[0:5] == fs
-    assert fs[-3:-1] == qc.FockState([2, 1, 1])
-    assert fs[1:3] == qc.FockState([1, 0, 2])
-    assert fs[2:2] == qc.FockState([0])
-    assert fs[1:5:2] == qc.FockState([1, 2, 1])
-    assert fs[1:5:3] == qc.FockState([1, 1])
+    assert fs[0:6] == fs
+    assert fs[-3:-1] == qc.FockState([2, 1])
+    assert fs[1:3] == qc.FockState([1, 0])
+    assert fs[2:2] == qc.FockState()
+    assert fs[1:6:2] == qc.FockState([1, 2, 1])
+    assert fs[1:6:3] == qc.FockState([1, 1])
 
 
 def test_setslice():
     fs = qc.FockState([0, 1, 0, 2, 1, 1])
-    assert fs.set_slice(slice(2, 3), qc.FockState([3, 4])) == qc.FockState([0, 1, 3, 4, 1, 1])
+    assert fs.set_slice(slice(2, 4), qc.FockState([3, 4])) == qc.FockState([0, 1, 3, 4, 1, 1])
 
 def test_properties_1():
     fs1 = qc.FockState([1, 2, 3, 0])
@@ -238,3 +238,11 @@ def test_plus_1():
     ]
     for c, s in enumerate(following_fs):
         assert str(fs1 + (1 + c)) == s
+
+def test_annotation():
+    fs = qc.FockState("|2{P:H},0>")
+    assert str(fs) == "|2{P:H},0>"
+    assert fs.get_mode_annotations(0) == [qc.Annotation("P:H"), qc.Annotation("P:H")]
+    fs.clear_annotations()
+    assert str(fs) == "|2,0>"
+    assert fs.get_mode_annotations(1) == []

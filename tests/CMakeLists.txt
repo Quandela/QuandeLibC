@@ -39,8 +39,10 @@ set(QLIBC_NESTED_SOURCES)
 foreach(SRC ${QLIBC_SOURCES})
     list(APPEND QLIBC_NESTED_SOURCES ../${SRC})
 endforeach()
+
 add_executable(quandelibcTests main_tests.cpp ${QLIBC_NESTED_SOURCES}
         test_fockstate.cpp
+        test_annotation.cpp
         test_fs_array.cpp
         test_permanents.cpp)
 
