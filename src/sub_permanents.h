@@ -33,14 +33,10 @@ void sub_permanents(const T* A, int n, T* p) {
      the matrices excluding row j
      output in p which is supposed to be size m */
   int m = n + 1;
-  if (n==1) {
-    p[0] = A[1];
-    p[1] = A[0];
-  }
+  if (n==1) { p[0] = A[1]; p[1] = A[0]; return; }
 
   T *rowsum, *q;
   CHECK_MEMALIGN(posix_memalign((void**)&rowsum, 32, m*sizeof(T)));
-  std::memset((void*)rowsum, 0, n*sizeof(T));
 
   for(int i=0, base=0; i<m; i++, base+=n) {
     rowsum[i] = A[base];
@@ -61,56 +57,33 @@ void sub_permanents(const T* A, int n, T* p) {
   }
   p[0] = t;
 
-  /* Loopless Gray binary Generation - Knuth Algorithm L */
   unsigned char *chi = (unsigned char*)malloc(n);
   std::memset(chi, 1, n);
-  int* f;
-  CHECK_MEMALIGN(posix_memalign((void**)&f, 32, n*sizeof(int)));
+
+  /* Loopless Gray binary Generation - Knuth Algorithm L */
+  unsigned int* f = (unsigned int*)malloc(n);
   for(int i=0; i<n; i++) f[i] = i;
+
   bool s = true;
 
   int j = 0;
-	while (j < n-1) {
-    if (chi[j]) {
-      for(int i=0, base=j; i<m; i++, base+=n) rowsum[i] -= A[base];
-      chi[j] = 0;
-    }
-    else {
-      for(int i=0, base=j; i<m; i++, base+=n) rowsum[i] -= A[base];
-      chi[j] = 1;
-    }
+  while (j < n-1) {
+    for(int i=0, base=j; i<m; i++, base+=n) rowsum[i] += chi[j] ? -A[base] : A[base];
+    chi[j] = 1-chi[j];
     prev_value = 1;
-    for(int i=0; i<m; i++)
-      prev_value = q[i] = prev_value*rowsum[i];
-    t = rowsum[m-1];
-    if (s) {
-      p[m-1] -= q[m-2];
-      for(int i = m-2; i > 0; i--){
-          p[i] -= t*q[i-1];
-          t *= rowsum[i];
-      }
-      p[0] -= t;
-    } else {
-      p[m-1] += q[m-2];
-      for(int i = m-2; i > 0; i--){
-          p[i] += t*q[i-1];
-          t *= rowsum[i];
-      }
-      p[0] += t;
+    for(int i=0; i<m; i++) prev_value = q[i] = prev_value*rowsum[i];
+    if (s) { t = -rowsum[m-1]; p[m-1] -= q[m-2]; }
+    else { t = rowsum[m-1]; p[m-1] += q[m-2]; }
+    for(int i = m-2; i > 0; i--){
+      p[i] += t*q[i-1];
+      t *= rowsum[i];
     }
+    p[0] += t;
     s = !s;
-
-    if (j > 0) {
-      int k = j + 1;
-      f[j] = f[k];
-      f[k] = k;
-      j = 0;
-    } else {
-      j = f[1];
-      f[1] = 1;
-    }
-	}
-  posix_memfree(f);
+    if (j > 0) { f[j] = f[j+1]; f[j+1] = j+1; j = 0; }
+    else { j = f[1]; f[1] = 1; }
+  }
+  free(f);
   free(chi);
   posix_memfree(q);
   posix_memfree(rowsum);
