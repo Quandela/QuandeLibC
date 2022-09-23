@@ -635,7 +635,7 @@ int fockstate::operator[](int idx) const {
 
 std::list<fockstate> fockstate::separate_state() const {
     std::list<fockstate> states;
-    if (!_n)
+    if (!_n || !has_annotations())
         states.push_back(*this);
     else {
         /* check which photon needs to be distinguished - if we have n photons, we might end-up with n partitions */
