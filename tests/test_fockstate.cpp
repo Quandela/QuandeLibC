@@ -118,6 +118,16 @@ SCENARIO("C++ Testing FockState") {
             REQUIRE(fockstate("|{P:(0,0)}{P:H}>").to_str(false) == "|2>");
         }
     }
+    SECTION("check egality operators") {
+        fockstate fs1("|0,0>");
+        fockstate fs2("|1,0>");
+        REQUIRE(fs1 == fs1);
+        REQUIRE(fs1 != fs2);
+        REQUIRE(!(fs1 == fs2));
+        REQUIRE(!(fs2 == fs1));
+        REQUIRE(fs2 == fs2);
+        REQUIRE(fs2 != fs1);
+    }
     SECTION("multiple string constructors - space insensitive") {
         REQUIRE(fockstate("[0,1]").to_str() == "|0,1>");
         REQUIRE(fockstate("[0, 1]").to_str() == "|0,1>");
