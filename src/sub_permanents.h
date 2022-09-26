@@ -61,7 +61,7 @@ void sub_permanents(const T* A, int n, T* p) {
   std::memset(chi, 1, n);
 
   /* Loopless Gray binary Generation - Knuth Algorithm L */
-  unsigned int* f = (unsigned int*)malloc(n);
+  unsigned int* f = (unsigned int*)malloc(n*sizeof(unsigned int));
   for(int i=0; i<n; i++) f[i] = i;
 
   bool s = true;
