@@ -42,14 +42,14 @@ fockstate::fockstate(int m): _m(m), _n(0), _code(n0_buffer), _owned_data(false) 
 }
 
 void fockstate::_parse_str(const char *str) {
+    _n = 0;
+    _m = 0;
     str = skip_blanks(str);
     char open_char = *str;
     if (*str != '[' && *str != '|' && *str != '(')
         throw std::invalid_argument("invalid fock state representation");
     str += 1;
     std::vector<int> fs_vect;
-    _n = 0;
-    _m = 0;
     while (true) {
         str = skip_blanks(str);
         if (!*str || !strchr("0123456789,{", *str) ||
@@ -157,11 +157,15 @@ void fockstate::_set_annotations(const std::map<int, std::list<std::string>> &an
     }
 }
 
-fockstate::fockstate(const char *str) {
+fockstate::fockstate(const char *str)
+    : _code(nullptr), _owned_data(false)
+{
     _parse_str(str);
 }
 
-fockstate::fockstate(const char *str, const std::map<int, std::list<std::string>> &annotations) {
+fockstate::fockstate(const char *str, const std::map<int, std::list<std::string>> &annotations)
+    : _code(nullptr), _owned_data(false)
+{
     _parse_str(str);
     _set_annotations(annotations);
 }
