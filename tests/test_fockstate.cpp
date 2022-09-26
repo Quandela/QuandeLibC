@@ -73,7 +73,8 @@ SCENARIO("C++ Testing FockState") {
         }
 
         WHEN("Instantiating with invalid strings") {
-            const char *txt = GENERATE("", "|0à1>", "2", "|", "[0,1>", "{0,1}", "|0{_:0}>");
+            const char *txt = GENERATE("", "|0à1>", "2", "|", "[0,1>", "{0,1}", "|0{_:0}>", "|{_:0}", "|0{_:0}>",
+                "|1{_:2>", "{P:(0.3,0)>", "|{;}>", "|{P:(1,2,3)}>", "|{P:(1,a)}>", "|{a:0,a:1}>");
 
             THEN("instantiation throw error") {
                 REQUIRE_THROWS_AS(fockstate(txt), std::invalid_argument);
