@@ -6,16 +6,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTING "Build unit tests" OFF)
 
+include(CheckCSourceCompiles)
+
+check_c_source_compiles("
+      #include <immintrin.h>
+      void floats_add(float *dest, float *a, float *b, unsigned size) {
+        for (; size >= 8; size -= 8, dest += 8, a += 8, b += 8) {
+          _mm256_storeu_ps(dest, _mm256_add_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b)));
+        }
+      }
+      int main(int argc, char **argv) {
+        floats_add((float*)0, (float*)0, (float*)0, 0);
+        return 0;
+      }" COMPILER_SUPPORTS_AVX)
+
+if (COMPILER_SUPPORTS_AVX)
+    message("AVX support detected")
+    add_compile_options(-mavx)
+else ()
+    message("AVX support not detected")
+endif ()
+
 if (MSVC)
     add_compile_options(/arch:AVX2 /MT /Zc:__cplusplus)
 else (MSVC)
     add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-zero-length-array)
-    # used for SIMD optimization
-    if (NOT "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64" AND NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "arm64")
-        # disable AVX optimization on Apple ARM64
-        add_compile_options(-mavx)
-        message("AVX Optimizations enabled")
-    endif ()
 endif (MSVC)
 
 find_package(Threads)
